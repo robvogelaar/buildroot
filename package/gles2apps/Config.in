@@ -1,0 +1,8 @@
+config BR2_PACKAGE_GLES2APPS
+	bool "gles2apps"
+	select BR2_PACKAGE_LIBPNG
+	select BR2_PACKAGE_FREETYPE
+	depends on BR2_PACKAGE_HAS_OPENGL_EGL
+	depends on BR2_PACKAGE_HAS_OPENGL_ES
+	help
+	  Gles2apps contains egl and gl|es 2.0 apps.

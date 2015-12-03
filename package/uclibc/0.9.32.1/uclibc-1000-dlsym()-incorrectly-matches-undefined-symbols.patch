@@ -1,0 +1,29 @@
+diff --git a/ldso/ldso/dl-hash.c b/ldso/ldso/dl-hash.c
+index 2ec883a..9b67156 100644
+--- a/ldso/ldso/dl-hash.c
++++ b/ldso/ldso/dl-hash.c
+@@ -188,6 +188,10 @@ check_match (const ElfW(Sym) *sym, char *strtab, const char* undef_name, int typ
+ 		 */
+ 		return NULL;
+ #endif
++#ifdef ARCH_SKIP_RELOC
++	if (ARCH_SKIP_RELOC(type_class, sym))
++		return NULL;
++#endif
+ 	if (_dl_strcmp(strtab + sym->st_name, undef_name) != 0)
+ 		return NULL;
+ 
+diff --git a/ldso/ldso/mips/dl-sysdep.h b/ldso/ldso/mips/dl-sysdep.h
+index 80c089a..e61c6ec 100644
+--- a/ldso/ldso/mips/dl-sysdep.h
++++ b/ldso/ldso/mips/dl-sysdep.h
+@@ -113,6 +113,9 @@ else if ((dpnt->d_tag == DT_MIPS_RLD_MAP) && (dpnt->d_un.d_ptr)) \
+      *(ElfW(Addr) *)(dpnt->d_un.d_ptr) =  (ElfW(Addr)) debug_addr; \
+ } while (0)
+ 
++#define ARCH_SKIP_RELOC(type_class, sym) \
++     ((sym)->st_shndx == SHN_UNDEF && !((sym)->st_other & STO_MIPS_PLT))
++
+ /* Initialization sequence for the application/library GOT.  */
+ #define INIT_GOT(GOT_BASE,MODULE)						\
+ do {										\

@@ -1,0 +1,10 @@
+--- a/Source/WebCore/platform/graphics/texmap/GraphicsLayerTextureMapper.cpp
++++ b/Source/WebCore/platform/graphics/texmap/GraphicsLayerTextureMapper.cpp
+@@ -670,6 +670,7 @@
+ void GraphicsLayerTextureMapper::removeAnimation(const String& animationName)
+ {
+     m_animations.remove(animationName);
++    notifyChange(AnimationChange);
+ }
+ 
+ #if ENABLE(CSS_FILTERS)

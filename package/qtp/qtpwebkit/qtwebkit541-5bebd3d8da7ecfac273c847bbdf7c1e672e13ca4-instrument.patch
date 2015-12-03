@@ -1,0 +1,2484 @@
+diff -Naur a/Source/WebCore/dom/Document.cpp b/Source/WebCore/dom/Document.cpp
+--- a/Source/WebCore/dom/Document.cpp	2015-06-14 14:43:02.731820210 -0700
++++ b/Source/WebCore/dom/Document.cpp	2015-06-14 14:43:02.887820213 -0700
+@@ -167,6 +167,8 @@
+ #include <wtf/PassRefPtr.h>
+ #include <wtf/text/StringBuffer.h>
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ #if USE(ACCELERATED_COMPOSITING)
+ #include "RenderLayerCompositor.h"
+ #endif
+@@ -1779,6 +1781,8 @@
+ 
+     InspectorInstrumentationCookie cookie = InspectorInstrumentation::willRecalculateStyle(this);
+ 
++    if (tditrace) tditrace("@T+Document::recalcStyle()");
++
+     if (m_elemSheet && m_elemSheet->contents()->usesRemUnits())
+         m_styleSheetCollection->setUsesRemUnit(true);
+ 
+@@ -1849,6 +1853,8 @@
+ 
+     InspectorInstrumentation::didRecalculateStyle(cookie);
+ 
++    if (tditrace) tditrace("@T-Document::recalcStyle()");
++
+     // As a result of the style recalculation, the currently hovered element might have been
+     // detached (for example, by setting display:none in the :hover style), schedule another mouseMove event
+     // to check if any other elements ended up under the mouse pointer due to re-layout.
+diff -Naur a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp b/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp
+--- a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp	2015-06-14 14:43:02.635820208 -0700
++++ b/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp	2015-06-14 14:43:02.763820211 -0700
+@@ -58,6 +58,8 @@
+ #include "TextMetrics.h"
+ #include "TextRun.h"
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ #if USE(ACCELERATED_COMPOSITING)
+ #include "RenderLayer.h"
+ #endif
+@@ -1039,6 +1041,8 @@
+         return;
+     FloatRect rect(x, y, width, height);
+ 
++    if (tditrace) tditrace("@T+CanvasRenderingContext2D::clearRect() %gx%g+%g+%g", rect.width(), rect.height(), rect.x(), rect.y());
++
+     bool saved = false;
+     if (shouldDrawShadows()) {
+         context->save();
+@@ -1063,6 +1067,8 @@
+     if (saved)
+         context->restore();
+     didDraw(rect);
++
++    if (tditrace) tditrace("@T-CanvasRenderingContext2D::clearRect()");
+ }
+ 
+ void CanvasRenderingContext2D::fillRect(float x, float y, float width, float height)
+@@ -1085,6 +1091,8 @@
+ 
+     FloatRect rect(x, y, width, height);
+ 
++    if (tditrace) tditrace("@T+CanvasRenderingContext2D::fillRect() %gx%g+%g+%g", rect.width(), rect.height(), rect.x(), rect.y());
++
+     if (rectContainsCanvas(rect)) {
+         c->fillRect(rect);
+         didDrawEntireCanvas();
+@@ -1099,6 +1107,8 @@
+         c->fillRect(rect);
+         didDraw(rect);
+     }
++
++    if (tditrace) tditrace("@T-CanvasRenderingContext2D::fillRect()");
+ }
+ 
+ void CanvasRenderingContext2D::strokeRect(float x, float y, float width, float height)
+@@ -2083,12 +2093,43 @@
+ 
+ void CanvasRenderingContext2D::fillText(const String& text, float x, float y)
+ {
++    char t[128];
++    int i;
++    if (text.is8Bit()) {
++        i = text.length() < 127 ? text.length() : 127;
++        strncpy(t, (char*)text.characters8(), i);
++    } else {
++        char* p = (char*)text.characters16();
++        for (i = 0 ; i < (text.length() < 127 ? text.length() : 127) ; i++) {
++            t[i] = p[0+i*2];
++        }
++    }
++    t[i]=0;
++    if (tditrace) tditrace("@T+CanvasRenderingContext2D::fillText() \"%s\"", t);
++
+     drawTextInternal(text, x, y, true);
++
++    if (tditrace) tditrace("@T-CanvasRenderingContext2D::fillText()");
+ }
+ 
+ void CanvasRenderingContext2D::fillText(const String& text, float x, float y, float maxWidth)
+ {
++    if (text.is8Bit()) {
++        if (tditrace) tditrace("@T+CanvasRenderingContext2D::fillText() \"%s\"", (char*)text.characters8());
++    } else {
++        char t[128];
++        int i;
++        char* p = (char*)text.characters16();
++        for (i = 0 ; i < (text.length() < 127 ? text.length() : 127) ; i++) {
++            t[i] = p[0+i*2];
++        }
++        t[i]=0;
++        if (tditrace) tditrace("@T+CanvasRenderingContext2D::fillText() \"%s\"", t);
++    }
++
+     drawTextInternal(text, x, y, true, maxWidth, true);
++
++    if (tditrace) tditrace("@T-CanvasRenderingContext2D::fillText()");
+ }
+ 
+ void CanvasRenderingContext2D::strokeText(const String& text, float x, float y)
+diff -Naur a/Source/WebCore/html/canvas/WebGLRenderingContext.cpp b/Source/WebCore/html/canvas/WebGLRenderingContext.cpp
+--- a/Source/WebCore/html/canvas/WebGLRenderingContext.cpp	2015-06-14 14:43:02.647820208 -0700
++++ b/Source/WebCore/html/canvas/WebGLRenderingContext.cpp	2015-06-14 14:43:02.775820211 -0700
+@@ -84,6 +84,8 @@
+ #undef emit
+ #endif
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ namespace WebCore {
+ 
+ const double secondsBetweenRestoreAttempts = 1.0;
+@@ -418,6 +420,8 @@
+         return nullptr;
+     }
+ 
++    if (tditrace) tditrace("@T+WebGLRenderingContext::create()");
++
+     HostWindow* hostWindow = document->view()->root()->hostWindow();
+     GraphicsContext3D::Attributes attributes = attrs ? attrs->attributes() : GraphicsContext3D::Attributes();
+ 
+@@ -434,6 +438,7 @@
+ 
+     if (!context || !context->makeContextCurrent()) {
+         canvas->dispatchEvent(WebGLContextEvent::create(eventNames().webglcontextcreationerrorEvent, false, true, "Could not create a WebGL context."));
++        if (tditrace) tditrace("@T-WebGLRenderingContext::create()");
+         return nullptr;
+     }
+ 
+@@ -444,6 +449,7 @@
+     OwnPtr<WebGLRenderingContext> renderingContext = adoptPtr(new WebGLRenderingContext(canvas, context, attributes));
+     renderingContext->suspendIfNeeded();
+ 
++    if (tditrace) tditrace("@T-WebGLRenderingContext::create()");
+     return renderingContext.release();
+ }
+ 
+@@ -667,6 +673,8 @@
+         || m_attributes.preserveDrawingBuffer || (mask && m_framebufferBinding))
+         return false;
+ 
++    if (tditrace) tditrace("@T+WebGLRenderingContext::clearIfComposited()");
++
+     RefPtr<WebGLContextAttributes> contextAttributes = getContextAttributes();
+ 
+     // Determine if it's possible to combine the clear the user asked for and this clear.
+@@ -709,6 +717,8 @@
+         m_context->bindFramebuffer(GraphicsContext3D::FRAMEBUFFER, objectOrZero(m_framebufferBinding.get()));
+     m_layerCleared = true;
+ 
++    if (tditrace) tditrace("@T-WebGLRenderingContext::clearIfComposited()");
++
+     return combinedClear;
+ }
+ 
+diff -Naur a/Source/WebCore/page/Console.cpp b/Source/WebCore/page/Console.cpp
+--- a/Source/WebCore/page/Console.cpp	2015-06-14 14:43:02.735820210 -0700
++++ b/Source/WebCore/page/Console.cpp	2015-06-14 14:43:02.887820213 -0700
+@@ -156,9 +156,16 @@
+     internalAddMessage(page(), ClearMessageType, LogMessageLevel, state, arguments, true);
+ }
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
+ void Console::trace(ScriptState* state, PassRefPtr<ScriptArguments> arguments)
+ {
+-    internalAddMessage(page(), TraceMessageType, LogMessageLevel, state, arguments, true, true);
++    //internalAddMessage(page(), TraceMessageType, LogMessageLevel, state, arguments, true, true);
++
++    for (size_t i = 0; i < arguments->argumentCount(); ++i) {
++        String argAsString = arguments->argumentAt(i).toString(arguments->globalState());
++
++        if (tditrace) tditrace("%s", argAsString.utf8().data());
++    }
+ }
+ 
+ void Console::assertCondition(ScriptState* state, PassRefPtr<ScriptArguments> arguments, bool condition)
+diff -Naur a/Source/WebCore/page/DOMTimer.cpp b/Source/WebCore/page/DOMTimer.cpp
+--- a/Source/WebCore/page/DOMTimer.cpp	2015-06-14 14:43:02.735820210 -0700
++++ b/Source/WebCore/page/DOMTimer.cpp	2015-06-14 14:43:02.887820213 -0700
+@@ -35,6 +35,8 @@
+ #include <wtf/HashSet.h>
+ #include <wtf/StdLibExtras.h>
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ using namespace std;
+ 
+ namespace WebCore {
+@@ -87,6 +89,8 @@
+     timer->suspendIfNeeded();
+     InspectorInstrumentation::didInstallTimer(context, timer->m_timeoutId, timeout, singleShot);
+ 
++    if (tditrace) tditrace("DOMTimer install(),%dms,%d", timeout, timer->m_timeoutId);
++
+     return timer->m_timeoutId;
+ }
+ 
+@@ -100,6 +104,8 @@
+ 
+     InspectorInstrumentation::didRemoveTimer(context, timeoutId);
+ 
++    if (tditrace) tditrace("DOMTimer removeById(),%d", timeoutId);
++
+     delete context->findTimeout(timeoutId);
+ }
+ 
+@@ -114,6 +120,8 @@
+ 
+     InspectorInstrumentationCookie cookie = InspectorInstrumentation::willFireTimer(context, m_timeoutId);
+ 
++    if (tditrace) tditrace("DOMTimer fired(),%d", m_timeoutId);
++
+     // Simple case for non-one-shot timers.
+     if (isActive()) {
+         double minimumInterval = context->minimumTimerInterval();
+diff -Naur a/Source/WebCore/page/FrameView.cpp b/Source/WebCore/page/FrameView.cpp
+--- a/Source/WebCore/page/FrameView.cpp	2015-06-14 14:43:02.743820210 -0700
++++ b/Source/WebCore/page/FrameView.cpp	2015-06-14 14:43:02.895820213 -0700
+@@ -77,6 +77,8 @@
+ #include "TextResourceDecoder.h"
+ #include "TextStream.h"
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ #include <wtf/CurrentTime.h>
+ #include <wtf/TemporaryChange.h>
+ 
+@@ -3596,9 +3598,12 @@
+     if (needsLayout())
+         return;
+ 
+-    if (!p->paintingDisabled())
++    if (!p->paintingDisabled()) {
+         InspectorInstrumentation::willPaint(renderView);
+ 
++        if (tditrace) tditrace("@T+FrameView::paintContents()");
++    }
++
+     bool isTopLevelPainter = !sCurrentPaintTimeStamp;
+     if (isTopLevelPainter)
+         sCurrentPaintTimeStamp = currentTime();
+@@ -3663,6 +3668,9 @@
+ 
+     if (!p->paintingDisabled()) {
+         InspectorInstrumentation::didPaint(renderView, p, rect);
++
++        if (tditrace) tditrace("@T-FrameView::paintContents()");
++
+         // FIXME: should probably not fire milestones for snapshot painting. https://bugs.webkit.org/show_bug.cgi?id=117623
+         firePaintRelatedMilestones();
+     }
+diff -Naur a/Source/WebCore/platform/graphics/GraphicsContext.cpp b/Source/WebCore/platform/graphics/GraphicsContext.cpp
+--- a/Source/WebCore/platform/graphics/GraphicsContext.cpp	2015-06-14 14:43:02.699820209 -0700
++++ b/Source/WebCore/platform/graphics/GraphicsContext.cpp	2015-06-14 14:43:02.839820212 -0700
+@@ -36,6 +36,8 @@
+ 
+ #include "stdio.h"
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ using namespace std;
+ 
+ namespace WebCore {
+@@ -414,7 +416,23 @@
+     if (paintingDisabled())
+         return;
+ 
++    char text[128];
++    int i;
++    if (run.is8Bit()) {
++        i = run.length() < 127 ? run.length() : 127;
++        strncpy(text, (char*)run.characters8(), i);
++    } else {
++        char* p = (char*)run.characters16();
++        for (i = 0 ; i < (run.length() < 127 ? run.length() : 127) ; i++) {
++            text[i] = p[0+i*2];
++        }
++    }
++    text[i]=0;
++    if (tditrace) tditrace("@T+GraphicsContext::drawText() \"%s\"", text);
++
+     font.drawText(this, run, point, from, to);
++
++    if (tditrace) tditrace("@T-GraphicsContext::drawText()");
+ }
+ #endif
+ 
+@@ -504,6 +522,8 @@
+ {    if (paintingDisabled() || !image)
+         return;
+ 
++    if (tditrace) tditrace("@T+GraphicsContext::drawImage()  %gx%g+%g+%g", dest.width(), dest.height(), dest.x(), dest.y());
++
+     InterpolationQuality previousInterpolationQuality = InterpolationDefault;
+ 
+     if (useLowQualityScale) {
+@@ -516,6 +536,8 @@
+ 
+     if (useLowQualityScale)
+         setImageInterpolationQuality(previousInterpolationQuality);
++
++    if (tditrace) tditrace("@T-GraphicsContext::drawImage()");
+ }
+ 
+ void GraphicsContext::drawTiledImage(Image* image, ColorSpace styleColorSpace, const IntRect& destRect, const IntPoint& srcPoint, const IntSize& tileSize, CompositeOperator op, bool useLowQualityScale, BlendMode blendMode)
+diff -Naur a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp
+--- a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp	2015-06-14 14:43:02.711820210 -0700
++++ b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp	2015-06-14 14:43:02.863820212 -0700
+@@ -67,6 +67,8 @@
+ #include <BlackBerryPlatformLog.h>
+ #endif
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ namespace WebCore {
+ 
+ PassRefPtr<GraphicsContext3D> GraphicsContext3D::createForCurrentGLContext()
+@@ -161,6 +163,7 @@
+         return;
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     if (m_attrs.antialias)
+         resolveMultisamplingIfNecessary();
+ 
+@@ -183,6 +186,7 @@
+         return;
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+ 
+     bool mustRestoreFBO = false;
+     if (m_attrs.antialias) {
+@@ -221,6 +225,8 @@
+     if (width == m_currentWidth && height == m_currentHeight)
+         return;
+ 
++    if (tditrace) tditrace("@T+GraphicsContext3D::reshape()");
++
+ #if (PLATFORM(QT) || PLATFORM(EFL)) && USE(GRAPHICS_SURFACE)
+     m_functions->glFlush(); // Make sure all GL calls have been committed before resizing.
+     createGraphicsSurfaces(IntSize(width, height));
+@@ -290,6 +296,8 @@
+         m_functions->glBindFramebuffer(GraphicsContext3D::FRAMEBUFFER, m_state.boundFBO);
+ 
+     m_functions->glFlush();
++
++    if (tditrace) tditrace("@T-GraphicsContext3D::reshape()");
+ }
+ 
+ IntSize GraphicsContext3D::getInternalFramebufferSize() const
+@@ -300,6 +308,7 @@
+ void GraphicsContext3D::activeTexture(GC3Denum texture)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_state.activeTexture = texture;
+     m_functions->glActiveTexture(texture);
+ }
+@@ -309,6 +318,7 @@
+     ASSERT(program);
+     ASSERT(shader);
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glAttachShader(program, shader);
+ }
+ 
+@@ -316,18 +326,21 @@
+ {
+     ASSERT(program);
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glBindAttribLocation(program, index, name.utf8().data());
+ }
+ 
+ void GraphicsContext3D::bindBuffer(GC3Denum target, Platform3DObject buffer)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glBindBuffer(target, buffer);
+ }
+ 
+ void GraphicsContext3D::bindFramebuffer(GC3Denum target, Platform3DObject buffer)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     GLuint fbo;
+     if (buffer)
+         fbo = buffer;
+@@ -346,6 +359,7 @@
+ void GraphicsContext3D::bindRenderbuffer(GC3Denum target, Platform3DObject renderbuffer)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glBindRenderbuffer(target, renderbuffer);
+ }
+ 
+@@ -353,6 +367,7 @@
+ void GraphicsContext3D::bindTexture(GC3Denum target, Platform3DObject texture)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     if (m_state.activeTexture == GL_TEXTURE0 && target == GL_TEXTURE_2D)
+         m_state.boundTexture0 = texture;
+     m_functions->glBindTexture(target, texture);
+@@ -361,18 +376,21 @@
+ void GraphicsContext3D::blendColor(GC3Dclampf red, GC3Dclampf green, GC3Dclampf blue, GC3Dclampf alpha)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glBlendColor(red, green, blue, alpha);
+ }
+ 
+ void GraphicsContext3D::blendEquation(GC3Denum mode)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glBlendEquation(mode);
+ }
+ 
+ void GraphicsContext3D::blendEquationSeparate(GC3Denum modeRGB, GC3Denum modeAlpha)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glBlendEquationSeparate(modeRGB, modeAlpha);
+ }
+ 
+@@ -380,60 +398,73 @@
+ void GraphicsContext3D::blendFunc(GC3Denum sfactor, GC3Denum dfactor)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glBlendFunc(sfactor, dfactor);
+ }       
+ 
+ void GraphicsContext3D::blendFuncSeparate(GC3Denum srcRGB, GC3Denum dstRGB, GC3Denum srcAlpha, GC3Denum dstAlpha)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glBlendFuncSeparate(srcRGB, dstRGB, srcAlpha, dstAlpha);
+ }
+ 
+ void GraphicsContext3D::bufferData(GC3Denum target, GC3Dsizeiptr size, GC3Denum usage)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glBufferData(target, size, 0, usage);
+ }
+ 
+ void GraphicsContext3D::bufferData(GC3Denum target, GC3Dsizeiptr size, const void* data, GC3Denum usage)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glBufferData(target, size, data, usage);
+ }
+ 
+ void GraphicsContext3D::bufferSubData(GC3Denum target, GC3Dintptr offset, GC3Dsizeiptr size, const void* data)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glBufferSubData(target, offset, size, data);
+ }
+ 
+ GC3Denum GraphicsContext3D::checkFramebufferStatus(GC3Denum target)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     return m_functions->glCheckFramebufferStatus(target);
+ }
+ 
+ void GraphicsContext3D::clearColor(GC3Dclampf r, GC3Dclampf g, GC3Dclampf b, GC3Dclampf a)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glClearColor(r, g, b, a);
+ }
+ 
+ void GraphicsContext3D::clear(GC3Dbitfield mask)
+ {
++    if (tditrace) tditrace("@T+GraphicsContext3D::clear()");
++
+     makeContextCurrent();
+     m_functions->glClear(mask);
++
++    if (tditrace) tditrace("@T-GraphicsContext3D::clear()");
+ }
+ 
+ void GraphicsContext3D::clearStencil(GC3Dint s)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glClearStencil(s);
+ }
+ 
+ void GraphicsContext3D::colorMask(GC3Dboolean red, GC3Dboolean green, GC3Dboolean blue, GC3Dboolean alpha)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glColorMask(red, green, blue, alpha);
+ }
+ 
+@@ -441,6 +472,7 @@
+ {
+     ASSERT(shader);
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+ 
+     String translatedShaderSource = m_extensions->getTranslatedShaderSourceANGLE(shader);
+ 
+@@ -485,6 +517,7 @@
+ void GraphicsContext3D::copyTexImage2D(GC3Denum target, GC3Dint level, GC3Denum internalformat, GC3Dint x, GC3Dint y, GC3Dsizei width, GC3Dsizei height, GC3Dint border)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+ #if !PLATFORM(BLACKBERRY)
+     if (m_attrs.antialias && m_state.boundFBO == m_multisampleFBO) {
+         resolveMultisamplingIfNecessary(IntRect(x, y, width, height));
+@@ -501,6 +534,7 @@
+ void GraphicsContext3D::copyTexSubImage2D(GC3Denum target, GC3Dint level, GC3Dint xoffset, GC3Dint yoffset, GC3Dint x, GC3Dint y, GC3Dsizei width, GC3Dsizei height)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+ #if !PLATFORM(BLACKBERRY)
+     if (m_attrs.antialias && m_state.boundFBO == m_multisampleFBO) {
+         resolveMultisamplingIfNecessary(IntRect(x, y, width, height));
+@@ -517,18 +551,21 @@
+ void GraphicsContext3D::cullFace(GC3Denum mode)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glCullFace(mode);
+ }
+ 
+ void GraphicsContext3D::depthFunc(GC3Denum func)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glDepthFunc(func);
+ }
+ 
+ void GraphicsContext3D::depthMask(GC3Dboolean flag)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glDepthMask(flag);
+ }
+ 
+@@ -537,78 +574,91 @@
+     ASSERT(program);
+     ASSERT(shader);
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glDetachShader(program, shader);
+ }
+ 
+ void GraphicsContext3D::disable(GC3Denum cap)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glDisable(cap);
+ }
+ 
+ void GraphicsContext3D::disableVertexAttribArray(GC3Duint index)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glDisableVertexAttribArray(index);
+ }
+ 
+ void GraphicsContext3D::drawArrays(GC3Denum mode, GC3Dint first, GC3Dsizei count)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glDrawArrays(mode, first, count);
+ }
+ 
+ void GraphicsContext3D::drawElements(GC3Denum mode, GC3Dsizei count, GC3Denum type, GC3Dintptr offset)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glDrawElements(mode, count, type, reinterpret_cast<GLvoid*>(static_cast<intptr_t>(offset)));
+ }
+ 
+ void GraphicsContext3D::enable(GC3Denum cap)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glEnable(cap);
+ }
+ 
+ void GraphicsContext3D::enableVertexAttribArray(GC3Duint index)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glEnableVertexAttribArray(index);
+ }
+ 
+ void GraphicsContext3D::finish()
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glFinish();
+ }
+ 
+ void GraphicsContext3D::flush()
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glFlush();
+ }
+ 
+ void GraphicsContext3D::framebufferRenderbuffer(GC3Denum target, GC3Denum attachment, GC3Denum renderbuffertarget, Platform3DObject buffer)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glFramebufferRenderbuffer(target, attachment, renderbuffertarget, buffer);
+ }
+ 
+ void GraphicsContext3D::framebufferTexture2D(GC3Denum target, GC3Denum attachment, GC3Denum textarget, Platform3DObject texture, GC3Dint level)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glFramebufferTexture2D(target, attachment, textarget, texture, level);
+ }
+ 
+ void GraphicsContext3D::frontFace(GC3Denum mode)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glFrontFace(mode);
+ }
+ 
+ void GraphicsContext3D::generateMipmap(GC3Denum target)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glGenerateMipmap(target);
+ }
+ 
+@@ -619,6 +669,7 @@
+         return false;
+     }
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     GLint maxAttributeSize = 0;
+     m_functions->glGetProgramiv(program, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxAttributeSize);
+     OwnArrayPtr<GLchar> name = adoptArrayPtr(new GLchar[maxAttributeSize]); // GL_ACTIVE_ATTRIBUTE_MAX_LENGTH includes null termination.
+@@ -645,6 +696,7 @@
+     }
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     GLint maxUniformSize = 0;
+     m_functions->glGetProgramiv(program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxUniformSize);
+ 
+@@ -671,6 +723,7 @@
+         return;
+     }
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glGetAttachedShaders(program, maxCount, count, shaders);
+ }
+ 
+@@ -720,6 +773,7 @@
+         return -1;
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+ 
+     // The attribute name may have been translated during ANGLE compilation.
+     // Look through the corresponding ShaderSourceMap to make sure we
+@@ -744,18 +798,21 @@
+     }
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     return m_functions->glGetError();
+ }
+ 
+ String GraphicsContext3D::getString(GC3Denum name)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     return String(reinterpret_cast<const char*>(m_functions->glGetString(name)));
+ }
+ 
+ void GraphicsContext3D::hint(GC3Denum target, GC3Denum mode)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glHint(target, mode);
+ }
+ 
+@@ -765,12 +822,14 @@
+         return GL_FALSE;
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     return m_functions->glIsBuffer(buffer);
+ }
+ 
+ GC3Dboolean GraphicsContext3D::isEnabled(GC3Denum cap)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     return m_functions->glIsEnabled(cap);
+ }
+ 
+@@ -780,6 +839,7 @@
+         return GL_FALSE;
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     return m_functions->glIsFramebuffer(framebuffer);
+ }
+ 
+@@ -789,6 +849,7 @@
+         return GL_FALSE;
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     return m_functions->glIsProgram(program);
+ }
+ 
+@@ -798,6 +859,7 @@
+         return GL_FALSE;
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     return m_functions->glIsRenderbuffer(renderbuffer);
+ }
+ 
+@@ -807,6 +869,7 @@
+         return GL_FALSE;
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     return m_functions->glIsShader(shader);
+ }
+ 
+@@ -816,12 +879,14 @@
+         return GL_FALSE;
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     return m_functions->glIsTexture(texture);
+ }
+ 
+ void GraphicsContext3D::lineWidth(GC3Dfloat width)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glLineWidth(width);
+ }
+ 
+@@ -829,30 +894,35 @@
+ {
+     ASSERT(program);
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glLinkProgram(program);
+ }
+ 
+ void GraphicsContext3D::pixelStorei(GC3Denum pname, GC3Dint param)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glPixelStorei(pname, param);
+ }
+ 
+ void GraphicsContext3D::polygonOffset(GC3Dfloat factor, GC3Dfloat units)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glPolygonOffset(factor, units);
+ }
+ 
+ void GraphicsContext3D::sampleCoverage(GC3Dclampf value, GC3Dboolean invert)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glSampleCoverage(value, invert);
+ }
+ 
+ void GraphicsContext3D::scissor(GC3Dint x, GC3Dint y, GC3Dsizei width, GC3Dsizei height)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glScissor(x, y, width, height);
+ }
+ 
+@@ -861,6 +931,7 @@
+     ASSERT(shader);
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+ 
+     ShaderSourceEntry entry;
+ 
+@@ -872,66 +943,77 @@
+ void GraphicsContext3D::stencilFunc(GC3Denum func, GC3Dint ref, GC3Duint mask)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glStencilFunc(func, ref, mask);
+ }
+ 
+ void GraphicsContext3D::stencilFuncSeparate(GC3Denum face, GC3Denum func, GC3Dint ref, GC3Duint mask)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glStencilFuncSeparate(face, func, ref, mask);
+ }
+ 
+ void GraphicsContext3D::stencilMask(GC3Duint mask)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glStencilMask(mask);
+ }
+ 
+ void GraphicsContext3D::stencilMaskSeparate(GC3Denum face, GC3Duint mask)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glStencilMaskSeparate(face, mask);
+ }
+ 
+ void GraphicsContext3D::stencilOp(GC3Denum fail, GC3Denum zfail, GC3Denum zpass)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glStencilOp(fail, zfail, zpass);
+ }
+ 
+ void GraphicsContext3D::stencilOpSeparate(GC3Denum face, GC3Denum fail, GC3Denum zfail, GC3Denum zpass)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glStencilOpSeparate(face, fail, zfail, zpass);
+ }
+ 
+ void GraphicsContext3D::texParameterf(GC3Denum target, GC3Denum pname, GC3Dfloat value)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glTexParameterf(target, pname, value);
+ }
+ 
+ void GraphicsContext3D::texParameteri(GC3Denum target, GC3Denum pname, GC3Dint value)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glTexParameteri(target, pname, value);
+ }
+ 
+ void GraphicsContext3D::uniform1f(GC3Dint location, GC3Dfloat v0)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniform1f(location, v0);
+ }
+ 
+ void GraphicsContext3D::uniform1fv(GC3Dint location, GC3Dsizei size, GC3Dfloat* array)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniform1fv(location, size, array);
+ }
+ 
+ void GraphicsContext3D::uniform2f(GC3Dint location, GC3Dfloat v0, GC3Dfloat v1)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniform2f(location, v0, v1);
+ }
+ 
+@@ -939,12 +1021,14 @@
+ {
+     // FIXME: length needs to be a multiple of 2.
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniform2fv(location, size, array);
+ }
+ 
+ void GraphicsContext3D::uniform3f(GC3Dint location, GC3Dfloat v0, GC3Dfloat v1, GC3Dfloat v2)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniform3f(location, v0, v1, v2);
+ }
+ 
+@@ -952,12 +1036,14 @@
+ {
+     // FIXME: length needs to be a multiple of 3.
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniform3fv(location, size, array);
+ }
+ 
+ void GraphicsContext3D::uniform4f(GC3Dint location, GC3Dfloat v0, GC3Dfloat v1, GC3Dfloat v2, GC3Dfloat v3)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniform4f(location, v0, v1, v2, v3);
+ }
+ 
+@@ -965,24 +1051,28 @@
+ {
+     // FIXME: length needs to be a multiple of 4.
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniform4fv(location, size, array);
+ }
+ 
+ void GraphicsContext3D::uniform1i(GC3Dint location, GC3Dint v0)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniform1i(location, v0);
+ }
+ 
+ void GraphicsContext3D::uniform1iv(GC3Dint location, GC3Dsizei size, GC3Dint* array)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniform1iv(location, size, array);
+ }
+ 
+ void GraphicsContext3D::uniform2i(GC3Dint location, GC3Dint v0, GC3Dint v1)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniform2i(location, v0, v1);
+ }
+ 
+@@ -990,12 +1080,14 @@
+ {
+     // FIXME: length needs to be a multiple of 2.
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniform2iv(location, size, array);
+ }
+ 
+ void GraphicsContext3D::uniform3i(GC3Dint location, GC3Dint v0, GC3Dint v1, GC3Dint v2)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniform3i(location, v0, v1, v2);
+ }
+ 
+@@ -1003,12 +1095,14 @@
+ {
+     // FIXME: length needs to be a multiple of 3.
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniform3iv(location, size, array);
+ }
+ 
+ void GraphicsContext3D::uniform4i(GC3Dint location, GC3Dint v0, GC3Dint v1, GC3Dint v2, GC3Dint v3)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniform4i(location, v0, v1, v2, v3);
+ }
+ 
+@@ -1016,6 +1110,7 @@
+ {
+     // FIXME: length needs to be a multiple of 4.
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniform4iv(location, size, array);
+ }
+ 
+@@ -1023,6 +1118,7 @@
+ {
+     // FIXME: length needs to be a multiple of 4.
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniformMatrix2fv(location, size, transpose, array);
+ }
+ 
+@@ -1030,6 +1126,7 @@
+ {
+     // FIXME: length needs to be a multiple of 9.
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniformMatrix3fv(location, size, transpose, array);
+ }
+ 
+@@ -1037,12 +1134,14 @@
+ {
+     // FIXME: length needs to be a multiple of 16.
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUniformMatrix4fv(location, size, transpose, array);
+ }
+ 
+ void GraphicsContext3D::useProgram(Platform3DObject program)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glUseProgram(program);
+ }
+ 
+@@ -1051,90 +1150,105 @@
+     ASSERT(program);
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glValidateProgram(program);
+ }
+ 
+ void GraphicsContext3D::vertexAttrib1f(GC3Duint index, GC3Dfloat v0)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glVertexAttrib1f(index, v0);
+ }
+ 
+ void GraphicsContext3D::vertexAttrib1fv(GC3Duint index, GC3Dfloat* array)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glVertexAttrib1fv(index, array);
+ }
+ 
+ void GraphicsContext3D::vertexAttrib2f(GC3Duint index, GC3Dfloat v0, GC3Dfloat v1)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glVertexAttrib2f(index, v0, v1);
+ }
+ 
+ void GraphicsContext3D::vertexAttrib2fv(GC3Duint index, GC3Dfloat* array)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glVertexAttrib2fv(index, array);
+ }
+ 
+ void GraphicsContext3D::vertexAttrib3f(GC3Duint index, GC3Dfloat v0, GC3Dfloat v1, GC3Dfloat v2)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glVertexAttrib3f(index, v0, v1, v2);
+ }
+ 
+ void GraphicsContext3D::vertexAttrib3fv(GC3Duint index, GC3Dfloat* array)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glVertexAttrib3fv(index, array);
+ }
+ 
+ void GraphicsContext3D::vertexAttrib4f(GC3Duint index, GC3Dfloat v0, GC3Dfloat v1, GC3Dfloat v2, GC3Dfloat v3)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glVertexAttrib4f(index, v0, v1, v2, v3);
+ }
+ 
+ void GraphicsContext3D::vertexAttrib4fv(GC3Duint index, GC3Dfloat* array)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glVertexAttrib4fv(index, array);
+ }
+ 
+ void GraphicsContext3D::vertexAttribPointer(GC3Duint index, GC3Dint size, GC3Denum type, GC3Dboolean normalized, GC3Dsizei stride, GC3Dintptr offset)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glVertexAttribPointer(index, size, type, normalized, stride, reinterpret_cast<GLvoid*>(static_cast<intptr_t>(offset)));
+ }
+ 
+ void GraphicsContext3D::viewport(GC3Dint x, GC3Dint y, GC3Dsizei width, GC3Dsizei height)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glViewport(x, y, width, height);
+ }
+ 
+ void GraphicsContext3D::getBooleanv(GC3Denum pname, GC3Dboolean* value)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glGetBooleanv(pname, value);
+ }
+ 
+ void GraphicsContext3D::getBufferParameteriv(GC3Denum target, GC3Denum pname, GC3Dint* value)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glGetBufferParameteriv(target, pname, value);
+ }
+ 
+ void GraphicsContext3D::getFloatv(GC3Denum pname, GC3Dfloat* value)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glGetFloatv(pname, value);
+ }
+ 
+ void GraphicsContext3D::getFramebufferAttachmentParameteriv(GC3Denum target, GC3Denum attachment, GC3Denum pname, GC3Dint* value)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     if (attachment == DEPTH_STENCIL_ATTACHMENT)
+         attachment = DEPTH_ATTACHMENT; // Or STENCIL_ATTACHMENT, either works.
+     m_functions->glGetFramebufferAttachmentParameteriv(target, attachment, pname, value);
+@@ -1143,6 +1257,7 @@
+ void GraphicsContext3D::getProgramiv(Platform3DObject program, GC3Denum pname, GC3Dint* value)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glGetProgramiv(program, pname, value);
+ }
+ 
+@@ -1151,6 +1266,7 @@
+     ASSERT(program);
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     GLint length = 0;
+     m_functions->glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
+     if (!length)
+@@ -1166,6 +1282,7 @@
+ void GraphicsContext3D::getRenderbufferParameteriv(GC3Denum target, GC3Denum pname, GC3Dint* value)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glGetRenderbufferParameteriv(target, pname, value);
+ }
+ 
+@@ -1174,6 +1291,7 @@
+     ASSERT(shader);
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+ 
+     ShaderSourceMap::iterator result = m_shaderSourceMap.find(shader);
+     
+@@ -1209,6 +1327,7 @@
+     ASSERT(shader);
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+ 
+     ShaderSourceMap::iterator result = m_shaderSourceMap.find(shader);
+     if (result == m_shaderSourceMap.end())
+@@ -1235,6 +1354,7 @@
+     ASSERT(shader);
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+ 
+     ShaderSourceMap::iterator result = m_shaderSourceMap.find(shader);
+     if (result == m_shaderSourceMap.end())
+@@ -1247,24 +1367,28 @@
+ void GraphicsContext3D::getTexParameterfv(GC3Denum target, GC3Denum pname, GC3Dfloat* value)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glGetTexParameterfv(target, pname, value);
+ }
+ 
+ void GraphicsContext3D::getTexParameteriv(GC3Denum target, GC3Denum pname, GC3Dint* value)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glGetTexParameteriv(target, pname, value);
+ }
+ 
+ void GraphicsContext3D::getUniformfv(Platform3DObject program, GC3Dint location, GC3Dfloat* value)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glGetUniformfv(program, location, value);
+ }
+ 
+ void GraphicsContext3D::getUniformiv(Platform3DObject program, GC3Dint location, GC3Dint* value)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glGetUniformiv(program, location, value);
+ }
+ 
+@@ -1273,6 +1397,7 @@
+     ASSERT(program);
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+ 
+     // The uniform name may have been translated during ANGLE compilation.
+     // Look through the corresponding ShaderSourceMap to make sure we
+@@ -1285,18 +1410,21 @@
+ void GraphicsContext3D::getVertexAttribfv(GC3Duint index, GC3Denum pname, GC3Dfloat* value)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glGetVertexAttribfv(index, pname, value);
+ }
+ 
+ void GraphicsContext3D::getVertexAttribiv(GC3Duint index, GC3Denum pname, GC3Dint* value)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glGetVertexAttribiv(index, pname, value);
+ }
+ 
+ GC3Dsizeiptr GraphicsContext3D::getVertexAttribOffset(GC3Duint index, GC3Denum pname)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+ 
+     GLvoid* pointer = 0;
+     m_functions->glGetVertexAttribPointerv(index, pname, &pointer);
+@@ -1306,6 +1434,7 @@
+ void GraphicsContext3D::texSubImage2D(GC3Denum target, GC3Dint level, GC3Dint xoff, GC3Dint yoff, GC3Dsizei width, GC3Dsizei height, GC3Denum format, GC3Denum type, const void* pixels)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+ 
+     // FIXME: we will need to deal with PixelStore params when dealing with image buffers that differ from the subimage size.
+     m_functions->glTexSubImage2D(target, level, xoff, yoff, width, height, format, type, pixels);
+@@ -1314,18 +1443,21 @@
+ void GraphicsContext3D::compressedTexImage2D(GC3Denum target, GC3Dint level, GC3Denum internalformat, GC3Dsizei width, GC3Dsizei height, GC3Dint border, GC3Dsizei imageSize, const void* data)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, data);
+ }
+ 
+ void GraphicsContext3D::compressedTexSubImage2D(GC3Denum target, GC3Dint level, GC3Dint xoffset, GC3Dint yoffset, GC3Dsizei width, GC3Dsizei height, GC3Denum format, GC3Dsizei imageSize, const void* data)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glCompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, imageSize, data);
+ }
+ 
+ Platform3DObject GraphicsContext3D::createBuffer()
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     GLuint o = 0;
+     m_functions->glGenBuffers(1, &o);
+     return o;
+@@ -1334,6 +1466,7 @@
+ Platform3DObject GraphicsContext3D::createFramebuffer()
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     GLuint o = 0;
+     m_functions->glGenFramebuffers(1, &o);
+     return o;
+@@ -1342,12 +1475,14 @@
+ Platform3DObject GraphicsContext3D::createProgram()
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     return m_functions->glCreateProgram();
+ }
+ 
+ Platform3DObject GraphicsContext3D::createRenderbuffer()
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     GLuint o = 0;
+     m_functions->glGenRenderbuffers(1, &o);
+     return o;
+@@ -1356,12 +1491,14 @@
+ Platform3DObject GraphicsContext3D::createShader(GC3Denum type)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     return m_functions->glCreateShader((type == FRAGMENT_SHADER) ? GL_FRAGMENT_SHADER : GL_VERTEX_SHADER);
+ }
+ 
+ Platform3DObject GraphicsContext3D::createTexture()
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     GLuint o = 0;
+     m_functions->glGenTextures(1, &o);
+     return o;
+@@ -1370,12 +1507,14 @@
+ void GraphicsContext3D::deleteBuffer(Platform3DObject buffer)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glDeleteBuffers(1, &buffer);
+ }
+ 
+ void GraphicsContext3D::deleteFramebuffer(Platform3DObject framebuffer)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     if (framebuffer == m_state.boundFBO) {
+         // Make sure the framebuffer is not going to be used for drawing
+         // operations after it gets deleted.
+@@ -1387,24 +1526,28 @@
+ void GraphicsContext3D::deleteProgram(Platform3DObject program)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glDeleteProgram(program);
+ }
+ 
+ void GraphicsContext3D::deleteRenderbuffer(Platform3DObject renderbuffer)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glDeleteRenderbuffers(1, &renderbuffer);
+ }
+ 
+ void GraphicsContext3D::deleteShader(Platform3DObject shader)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glDeleteShader(shader);
+ }
+ 
+ void GraphicsContext3D::deleteTexture(Platform3DObject texture)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     if (m_state.boundTexture0 == texture)
+         m_state.boundTexture0 = 0;
+     m_functions->glDeleteTextures(1, &texture);
+@@ -1433,6 +1576,7 @@
+ void GraphicsContext3D::texImage2DDirect(GC3Denum target, GC3Dint level, GC3Denum internalformat, GC3Dsizei width, GC3Dsizei height, GC3Dint border, GC3Denum format, GC3Denum type, const void* pixels)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
+ }
+ 
+diff -Naur a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGL.cpp b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGL.cpp
+--- a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGL.cpp	2015-06-14 14:43:02.711820210 -0700
++++ b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGL.cpp	2015-06-14 14:43:02.863820212 -0700
+@@ -77,10 +77,13 @@
+ 
+ namespace WebCore {
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ void GraphicsContext3D::releaseShaderCompiler()
+ {
+     ASSERT(m_private);
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glReleaseShaderCompiler();
+ }
+ 
+@@ -246,6 +249,7 @@
+ void GraphicsContext3D::renderbufferStorage(GC3Denum target, GC3Denum internalformat, GC3Dsizei width, GC3Dsizei height)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     if (!isGLES2Compliant()) {
+         switch (internalformat) {
+         case DEPTH_STENCIL:
+@@ -269,6 +273,7 @@
+ void GraphicsContext3D::getIntegerv(GC3Denum pname, GC3Dint* value)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     if (!isGLES2Compliant()) {
+         // Need to emulate MAX_FRAGMENT/VERTEX_UNIFORM_VECTORS and MAX_VARYING_VECTORS
+         // because desktop GL's corresponding queries return the number of components
+@@ -301,6 +306,7 @@
+     ASSERT(precision);
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glGetShaderPrecisionFormat(shaderType, precisionType, range, precision);
+ }
+ 
+@@ -339,12 +345,14 @@
+ void GraphicsContext3D::depthRange(GC3Dclampf zNear, GC3Dclampf zFar)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glDepthRangef(zNear, zFar);
+ }
+ 
+ void GraphicsContext3D::clearDepth(GC3Dclampf depth)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glClearDepthf(depth);
+ }
+ 
+@@ -361,6 +369,7 @@
+     // FIXME: remove the two glFlush calls when the driver bug is fixed, i.e.,
+     // all previous rendering calls should be done before reading pixels.
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     m_functions->glFlush();
+     if (m_attrs.antialias && m_state.boundFBO == m_multisampleFBO) {
+         resolveMultisamplingIfNecessary(IntRect(x, y, width, height));
+diff -Naur a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp
+--- a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp	2015-06-14 14:43:02.715820210 -0700
++++ b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp	2015-06-14 14:43:02.863820212 -0700
+@@ -40,17 +40,21 @@
+ #endif
+ #include "NotImplemented.h"
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ namespace WebCore {
+ 
+ void GraphicsContext3D::releaseShaderCompiler()
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     ::glReleaseShaderCompiler();
+ }
+ 
+ void GraphicsContext3D::readPixels(GC3Dint x, GC3Dint y, GC3Dsizei width, GC3Dsizei height, GC3Denum format, GC3Denum type, void* data)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     // FIXME: remove the two glFlush calls when the driver bug is fixed, i.e.,
+     // all previous rendering calls should be done before reading pixels.
+     ::glFlush();
+@@ -177,12 +181,14 @@
+ void GraphicsContext3D::renderbufferStorage(GC3Denum target, GC3Denum internalformat, GC3Dsizei width, GC3Dsizei height)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     ::glRenderbufferStorage(target, internalformat, width, height);
+ }
+ 
+ void GraphicsContext3D::getIntegerv(GC3Denum pname, GC3Dint* value)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     ::glGetIntegerv(pname, value);
+ }
+ 
+@@ -192,6 +198,7 @@
+     ASSERT(precision);
+ 
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     ::glGetShaderPrecisionFormat(shaderType, precisionType, range, precision);
+ }
+ 
+@@ -220,12 +227,14 @@
+ void GraphicsContext3D::depthRange(GC3Dclampf zNear, GC3Dclampf zFar)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     ::glDepthRangef(zNear, zFar);
+ }
+ 
+ void GraphicsContext3D::clearDepth(GC3Dclampf depth)
+ {
+     makeContextCurrent();
++    if (tditrace) tditrace("GraphicsContext3D:: %s", __func__);
+     ::glClearDepthf(depth);
+ }
+ 
+diff -Naur a/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp b/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp
+--- a/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp	2015-06-14 14:43:02.703820209 -0700
++++ b/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp	2015-06-14 14:43:02.851820212 -0700
+@@ -33,6 +33,7 @@
+ #include <qpa/qplatformpixmap.h>
+ #include <wtf/text/CString.h>
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
+ #include <private/qopenglextensions_p.h>
+ #include <QOffscreenSurface>
+ 
+@@ -262,6 +263,8 @@
+ #if USE(ACCELERATED_COMPOSITING)
+ void GraphicsContext3DPrivate::paintToTextureMapper(TextureMapper* textureMapper, const FloatRect& targetRect, const TransformationMatrix& matrix, float opacity)
+ {
++    if (tditrace) tditrace("@T+GraphicsContext3DPrivate::paintToTextureMapper()");
++
+     m_context->markLayerComposited();
+     blitMultisampleFramebufferAndRestoreContext();
+ 
+@@ -270,6 +273,8 @@
+         TextureMapperGL::Flags flags = TextureMapperGL::ShouldFlipTexture | (m_context->m_attrs.alpha ? TextureMapperGL::ShouldBlend : 0);
+         IntSize textureSize(m_context->m_currentWidth, m_context->m_currentHeight);
+         texmapGL->drawTexture(m_context->m_texture, flags, textureSize, targetRect, matrix, opacity);
++
++        if (tditrace) tditrace("@T-GraphicsContext3DPrivate::paintToTextureMapper()");
+         return;
+     }
+ 
+@@ -293,6 +298,8 @@
+ 
+     painter->drawImage(targetRect, offscreenImage);
+     painter->restore();
++
++    if (tditrace) tditrace("@T-GraphicsContext3DPrivate::paintToTextureMapper()");
+ }
+ #endif // USE(ACCELERATED_COMPOSITING)
+ 
+@@ -340,6 +347,8 @@
+ 
+ void GraphicsContext3DPrivate::blitMultisampleFramebufferAndRestoreContext()
+ {
++    if (tditrace) tditrace("@T+GraphicsContext3DPrivate::blitMultisampleFramebufferAndRestoreContext()");
++
+     const QOpenGLContext* currentContext = QOpenGLContext::currentContext();
+     QSurface* currentSurface = 0;
+     if (currentContext && currentContext != m_platformContext) {
+@@ -356,6 +365,8 @@
+ 
+     if (currentContext && currentContext != m_platformContext)
+         const_cast<QOpenGLContext*>(currentContext)->makeCurrent(currentSurface);
++
++    if (tditrace) tditrace("@T-GraphicsContext3DPrivate::blitMultisampleFramebufferAndRestoreContext()");
+ }
+ 
+ bool GraphicsContext3DPrivate::makeCurrentIfNeeded() const
+@@ -410,6 +421,8 @@
+         return;
+     }
+ 
++    if (tditrace) tditrace("@T+GraphicsContext3D::GraphicsContext3D()");
++
+     m_functions = m_private.get();
+     validateAttributes();
+ 
+@@ -430,6 +443,8 @@
+ 
+     if (renderStyle != RenderToCurrentGLContext)
+         m_functions->glClearColor(0.0, 0.0, 0.0, 0.0);
++
++    if (tditrace) tditrace("@T-GraphicsContext3D::GraphicsContext3D()");
+ }
+ 
+ GraphicsContext3D::~GraphicsContext3D()
+@@ -438,6 +453,8 @@
+     if (!m_private)
+         return;
+ 
++    if (tditrace) tditrace("@T+GraphicsContext3D::~GraphicsContext3D()");
++
+     makeContextCurrent();
+     m_functions->glDeleteTextures(1, &m_texture);
+     m_functions->glDeleteFramebuffers(1, &m_fbo);
+@@ -457,6 +474,8 @@
+     }
+ 
+     m_functions = 0;
++
++    if (tditrace) tditrace("@T-GraphicsContext3D::~GraphicsContext3D()");
+ }
+ 
+ PlatformGraphicsContext3D GraphicsContext3D::platformGraphicsContext3D()
+@@ -478,9 +497,15 @@
+ 
+ bool GraphicsContext3D::makeContextCurrent()
+ {
+-    if (!m_private)
++    if (tditrace) tditrace("@T+GraphicsContext3D::makeContextCurrent()");
++
++    if (!m_private) {
++        if (tditrace) tditrace("@T-GraphicsContext3D::makeContextCurrent()");
+         return false;
+-    return m_private->makeCurrentIfNeeded();
++    }
++    bool b = m_private->makeCurrentIfNeeded();
++    if (tditrace) tditrace("@T-GraphicsContext3D::makeContextCurrent()");
++    return b;
+ }
+ 
+ void GraphicsContext3D::paintToCanvas(const unsigned char* imagePixels, int imageWidth, int imageHeight,
+diff -Naur a/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp b/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp
+--- a/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp	2015-06-14 14:43:02.703820209 -0700
++++ b/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp	2015-06-14 14:43:02.847820212 -0700
+@@ -73,6 +73,8 @@
+ #include <QVector>
+ #include <wtf/MathExtras.h>
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ #if OS(WINDOWS)
+ QT_BEGIN_NAMESPACE
+ Q_GUI_EXPORT QPixmap qt_pixmapFromWinHBITMAP(HBITMAP, int hbitmapFormat = 0);
+@@ -832,8 +834,12 @@
+     if (!repeatX || !repeatY)
+         p->setClipRect(clip);
+ 
++    if (tditrace) tditrace("@T+QPainter::fillRect() %gx%g+%g+%g,%s", targetRect.width(), targetRect.height(), targetRect.x(), targetRect.y(), "brush");
++
+     p->fillRect(targetRect, brush);
+ 
++    if (tditrace) tditrace("@T-QPainter::fillRect()");
++
+     if (!oldClip.isEmpty())
+         p->setClipRegion(oldClip);
+     else if (!repeatX || !repeatY)
+@@ -874,7 +880,13 @@
+                 shadow.endShadowLayer(this);
+             }
+         }
++
++        if (tditrace) tditrace("@T+QPainter::fillRect() %gx%g+%g+%g,%s", normalizedRect.width(), normalizedRect.height(), normalizedRect.x(), normalizedRect.y(), "brush");
++
+         p->fillRect(normalizedRect, brush);
++
++        if (tditrace) tditrace("@T-QPainter::fillRect()");
++
+     } else {
+         if (hasShadow()) {
+             if (mustUseShadowBlur()) {
+@@ -895,11 +907,20 @@
+                 // faster without using the shadow layer at all.
+                 QColor shadowColor = m_state.shadowColor;
+                 shadowColor.setAlphaF(shadowColor.alphaF() * p->brush().color().alphaF());
++
++                if (tditrace) tditrace("@T+QPainter::fillRect() %gx%g+%g+%g,%s", normalizedRect.width(), normalizedRect.height(), normalizedRect.x(), normalizedRect.y(), "color");
++
+                 p->fillRect(normalizedRect.translated(QPointF(m_state.shadowOffset.width(), m_state.shadowOffset.height())), shadowColor);
++
++                if (tditrace) tditrace("@T-QPainter::fillRect()");
+             }
+         }
+ 
++        if (tditrace) tditrace("@T+QPainter::fillRect() %gx%g+%g+%g,%s", normalizedRect.width(), normalizedRect.height(), normalizedRect.x(), normalizedRect.y(), "brush");
++
+         p->fillRect(normalizedRect, p->brush());
++
++        if (tditrace) tditrace("@T-QPainter::fillRect()");
+     }
+ }
+ 
+@@ -909,6 +930,11 @@
+     if (paintingDisabled() || !color.isValid())
+         return;
+ 
++    QColor qcolor = QColor(color);
++    int r,g,b,a;
++    qcolor.getRgb(&r, &g, &b, &a);
++    if (tditrace) tditrace("GraphicsContext::fillRect() %gx%g+%g+%g,%02X%02X%02X%02X", rect.width(), rect.height(), rect.x(), rect.y(), r, g, b, a);
++
+     QRectF platformRect(rect);
+     QPainter* p = m_data->p();
+     if (hasShadow()) {
+@@ -918,10 +944,20 @@
+         } else {
+             QColor shadowColor = m_state.shadowColor;
+             shadowColor.setAlphaF(shadowColor.alphaF() * p->brush().color().alphaF());
++
++            if (tditrace) tditrace("@T+QPainter::fillRect() %gx%g+%g+%g,%s", platformRect.width(), platformRect.height(), platformRect.x(), platformRect.y(), "color");
++
+             p->fillRect(platformRect.translated(QPointF(m_state.shadowOffset.width(), m_state.shadowOffset.height())), shadowColor);
++
++            if (tditrace) tditrace("@T-QPainter::fillRect()");
+         }
+     }
++
++    if (tditrace) tditrace("@T+QPainter::fillRect() %gx%g+%g+%g,%s", platformRect.width(), platformRect.height(), platformRect.x(), platformRect.y(), "color");
++
+     p->fillRect(platformRect, QColor(color));
++
++    if (tditrace) tditrace("@T-QPainter::fillRect()");
+ }
+ 
+ void GraphicsContext::fillRoundedRect(const IntRect& rect, const IntSize& topLeft, const IntSize& topRight, const IntSize& bottomLeft, const IntSize& bottomRight, const Color& color, ColorSpace colorSpace)
+@@ -929,6 +965,11 @@
+     if (paintingDisabled() || !color.isValid())
+         return;
+ 
++    QColor qcolor = QColor(color);
++    int r,g,b,a;
++    qcolor.getRgb(&r, &g, &b, &a);
++    if (tditrace) tditrace("GraphicsContext::fillRoundedRect() %dx%d+%d+%d,%02X%02X%02X%02X", rect.width(), rect.height(), rect.x(), rect.y(), r, g, b, a);
++
+     Path path;
+     path.addRoundedRect(rect, topLeft, topRight, bottomLeft, bottomRight);
+     QPainter* p = m_data->p();
+@@ -951,6 +992,11 @@
+     if (paintingDisabled() || !color.isValid())
+         return;
+ 
++    QColor qcolor = QColor(color);
++    int r,g,b,a;
++    qcolor.getRgb(&r, &g, &b, &a);
++    if (tditrace) tditrace("GraphicsContext::fillRectWithRoundedHole() %dx%d+%d+%d,%02X%02X%02X%02X", rect.width(), rect.height(), rect.x(), rect.y(), r, g, b, a);
++
+     Path path;
+     path.addRect(rect);
+     if (!roundedHoleRect.radii().isZero())
+@@ -1346,10 +1392,18 @@
+     if (paintingDisabled())
+         return;
+ 
++    if (tditrace) tditrace("GraphicsContext::clearRect() %gx%g+%g+%g", rect.width(), rect.height(), rect.x(), rect.y());
++
+     QPainter* p = m_data->p();
+     QPainter::CompositionMode currentCompositionMode = p->compositionMode();
+     p->setCompositionMode(QPainter::CompositionMode_Source);
++
++    if (tditrace) tditrace("@T+QPainter::fillRect() %gx%g+%g+%g,%s", rect.width(), rect.height(), rect.x(), rect.y(), "color");
++
+     p->fillRect(rect, Qt::transparent);
++
++    if (tditrace) tditrace("@T-QPainter::fillRect()");
++
+     p->setCompositionMode(currentCompositionMode);
+ }
+ 
+diff -Naur a/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp b/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp
+--- a/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp	2015-06-14 14:43:02.707820209 -0700
++++ b/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp	2015-06-14 14:43:02.855820212 -0700
+@@ -286,16 +286,20 @@
+     painter->restore();
+ }
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
+ void ImageBufferDataPrivateAccelerated::paintToTextureMapper(TextureMapper* textureMapper, const FloatRect& targetRect, const TransformationMatrix& matrix, float opacity)
+ {
+     if (textureMapper->accelerationMode() != TextureMapper::OpenGLMode) {
+         return;
+     }
+ 
++    if (tditrace) tditrace("@T+ImageBufferDataPrivateAccelerated::paintToTextureMapper()");
++
+     commitChanges();
+ 
+     static_cast<TextureMapperGL*>(textureMapper)->drawTexture(m_fbo->texture(), TextureMapperGL::ShouldFlipTexture | TextureMapperGL::ShouldBlend, m_fbo->size(), targetRect, matrix, opacity);
+ 
++    if (tditrace) tditrace("@T-ImageBufferDataPrivateAccelerated::paintToTextureMapper()");
+ }
+ 
+ #endif // ACCELERATED_2D_CANVAS
+diff -Naur a/Source/WebCore/platform/graphics/qt/ImageQt.cpp b/Source/WebCore/platform/graphics/qt/ImageQt.cpp
+--- a/Source/WebCore/platform/graphics/qt/ImageQt.cpp	2015-06-14 14:43:02.699820209 -0700
++++ b/Source/WebCore/platform/graphics/qt/ImageQt.cpp	2015-06-14 14:43:02.843820212 -0700
+@@ -53,6 +53,8 @@
+ 
+ #include <math.h>
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ #if OS(WINDOWS)
+ QT_BEGIN_NAMESPACE
+ Q_GUI_EXPORT QPixmap qt_pixmapFromWinHBITMAP(HBITMAP, int hbitmapFormat = 0);
+@@ -157,6 +159,8 @@
+     if (transform.type() == QTransform::TxScale && transform.m11() == 0 && transform.m22() == 0)
+         return;
+ 
++    if (tditrace) tditrace("@T+Image::drawPattern()");
++
+     QPixmap pixmap = *framePixmap;
+     if (tr.x() || tr.y() || tr.width() != pixmap.width() || tr.height() != pixmap.height())
+         pixmap = pixmap.copy(tr);
+@@ -194,10 +198,17 @@
+ 
+     QBrush b(pixmap);
+     b.setTransform(transform);
++
++    if (tditrace) tditrace("@T+QPainter::fillRect() %gx%g+%g+%g,%s", dr.width(), dr.height(), dr.x(), dr.y(), "pixmap");
++
+     p->fillRect(dr, b);
+ 
++    if (tditrace) tditrace("@T-QPainter::fillRect()");
++
+     ctxt->setCompositeOperation(previousOperator);
+ 
++    if (tditrace) tditrace("@T-Image::drawPattern()");
++
+     if (imageObserver())
+         imageObserver()->didDraw(this);
+ }
+diff -Naur a/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp b/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp
+--- a/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp	2015-06-14 14:43:02.707820209 -0700
++++ b/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp	2015-06-14 14:43:02.855820212 -0700
+@@ -523,10 +523,16 @@
+ }
+ 
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
+ void GraphicsSurface::platformPaintToTextureMapper(TextureMapper* textureMapper, const FloatRect& targetRect, const TransformationMatrix& transform, float opacity)
+ {
++    if (tditrace) tditrace("@T+GraphicsSurface::platformPaintToTextureMapper()");
++
+     TextureMapperGL* texMapGL = static_cast<TextureMapperGL*>(textureMapper);
+     texMapGL->drawTexture(platformGetTextureID(), TextureMapperGL::ShouldBlend, m_private->size(), targetRect, transform, opacity);
++
++    if (tditrace) tditrace("@T-GraphicsSurface::platformPaintToTextureMapper()");
++
+ }
+ 
+ uint32_t GraphicsSurface::platformFrontBuffer() const
+diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperGL.cpp b/Source/WebCore/platform/graphics/texmap/TextureMapperGL.cpp
+--- a/Source/WebCore/platform/graphics/texmap/TextureMapperGL.cpp	2015-06-14 14:43:02.691820209 -0700
++++ b/Source/WebCore/platform/graphics/texmap/TextureMapperGL.cpp	2015-06-14 14:43:02.835820212 -0700
+@@ -67,6 +67,8 @@
+ #define GL_UNPACK_SKIP_ROWS 0x0CF3
+ #endif
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ #if USE(ACCELERATED_COMPOSITING) && USE(TEXTURE_MAPPER)
+ 
+ namespace WebCore {
+@@ -596,6 +598,8 @@
+ 
+ void TextureMapperGL::drawTexture(Platform3DObject texture, Flags flags, const IntSize& textureSize, const FloatRect& targetRect, const TransformationMatrix& modelViewMatrix, float opacity, unsigned exposedEdges)
+ {
++    if (tditrace) tditrace("@T+TextureMapperGL::drawTexture()");
++
+     bool useRect = flags & ShouldUseARBTextureRect;
+     bool useAntialiasing = m_enableEdgeDistanceAntialiasing
+         && exposedEdges == AllEdges
+@@ -636,6 +640,8 @@
+ #endif
+ 
+     drawTexturedQuadWithProgram(program.get(), texture, flags, textureSize, targetRect, modelViewMatrix, opacity);
++
++    if (tditrace) tditrace("@T-TextureMapperGL::drawTexture()");
+ }
+ 
+ void TextureMapperGL::drawSolidColor(const FloatRect& rect, const TransformationMatrix& matrix, const Color& color)
+@@ -731,6 +737,8 @@
+ 
+ void TextureMapperGL::drawTexturedQuadWithProgram(TextureMapperShaderProgram* program, uint32_t texture, Flags flags, const IntSize& size, const FloatRect& rect, const TransformationMatrix& modelViewMatrix, float opacity)
+ {
++    if (tditrace) tditrace("@T+TextureMapperGL::drawTexturedQuadWithProgram()");
++
+     m_context3D->useProgram(program->programID());
+     m_context3D->activeTexture(GraphicsContext3D::TEXTURE0);
+     GC3Denum target = flags & ShouldUseARBTextureRect ? GC3Denum(Extensions3D::TEXTURE_RECTANGLE_ARB) : GC3Denum(GraphicsContext3D::TEXTURE_2D);
+@@ -758,6 +766,8 @@
+     draw(rect, modelViewMatrix, program, GraphicsContext3D::TRIANGLE_FAN, flags);
+     m_context3D->texParameteri(GraphicsContext3D::TEXTURE_2D, GraphicsContext3D::TEXTURE_WRAP_S, GraphicsContext3D::CLAMP_TO_EDGE);
+     m_context3D->texParameteri(GraphicsContext3D::TEXTURE_2D, GraphicsContext3D::TEXTURE_WRAP_T, GraphicsContext3D::CLAMP_TO_EDGE);
++
++    if (tditrace) tditrace("@T-TextureMapperGL::drawTexturedQuadWithProgram()");
+ }
+ 
+ BitmapTextureGL::BitmapTextureGL(TextureMapperGL* textureMapper)
+diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp
+--- a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp	2015-06-14 14:43:02.695820209 -0700
++++ b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp	2015-06-14 14:43:02.839820212 -0700
+@@ -24,6 +24,8 @@
+ #include "Region.h"
+ #include <wtf/MathExtras.h>
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ #if USE(ACCELERATED_COMPOSITING) && USE(TEXTURE_MAPPER)
+ 
+ namespace WebCore {
+@@ -84,12 +86,16 @@
+ 
+ void TextureMapperLayer::paint()
+ {
++    if (tditrace) tditrace("@T+TextureMapperLayer::paint()");
++
+     computeTransformsRecursive();
+ 
+     TextureMapperPaintOptions options;
+     options.textureMapper = m_textureMapper;
+     options.textureMapper->bindSurface(0);
+     paintRecursive(options);
++
++    if (tditrace) tditrace("@T-TextureMapperLayer::paint()");
+ }
+ 
+ static Color blendWithOpacity(const Color& color, float opacity)
+@@ -117,6 +123,8 @@
+     if (!m_state.visible || !m_state.contentsVisible)
+         return;
+ 
++    if (tditrace) tditrace("@T+TextureMapperLayer::paintSelf()");
++
+     // We apply the following transform to compensate for painting into a surface, and then apply the offset so that the painting fits in the target rect.
+     TransformationMatrix transform;
+     transform.translate(options.offset.width(), options.offset.height());
+@@ -127,6 +135,8 @@
+         options.textureMapper->drawSolidColor(m_state.contentsRect, transform, blendWithOpacity(m_state.solidColor, options.opacity));
+         if (m_state.showDebugBorders)
+             options.textureMapper->drawBorder(m_state.debugBorderColor, m_state.debugBorderWidth, layerRect(), transform);
++
++        if (tditrace) tditrace("@T-TextureMapperLayer::paintSelf()");
+         return;
+     }
+ 
+@@ -144,8 +154,10 @@
+             m_backingStore->drawRepaintCounter(options.textureMapper, m_state.repaintCount, m_state.debugBorderColor, targetRect, transform);
+     }
+ 
+-    if (!m_contentsLayer)
++    if (!m_contentsLayer) {
++        if (tditrace) tditrace("@T-TextureMapperLayer::paintSelf()");
+         return;
++    }
+ 
+     if (!m_state.contentsTileSize.isEmpty()) {
+         computePatternTransformIfNeeded();
+@@ -157,6 +169,8 @@
+     m_contentsLayer->paintToTextureMapper(options.textureMapper, m_state.contentsRect, transform, options.opacity);
+     if (m_state.showDebugBorders)
+         m_contentsLayer->drawBorder(options.textureMapper, m_state.debugBorderColor, m_state.debugBorderWidth, m_state.contentsRect, transform);
++
++    if (tditrace) tditrace("@T-TextureMapperLayer::paintSelf()");
+ }
+ 
+ int TextureMapperLayer::compareGraphicsLayersZValue(const void* a, const void* b)
+diff -Naur a/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp b/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp
+--- a/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp	2015-06-14 14:43:02.719820210 -0700
++++ b/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp	2015-06-14 14:43:02.867820212 -0700
+@@ -42,6 +42,8 @@
+ #include "PlatformInstrumentation.h"
+ #include <wtf/PassOwnPtr.h>
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ extern "C" {
+ #if USE(ICCJPEG)
+ #include "iccjpeg.h"
+@@ -622,7 +624,13 @@
+     ImageFrame& frame = m_frameBufferCache[0];
+     if (frame.status() != ImageFrame::FrameComplete) {
+         PlatformInstrumentation::willDecodeImage("JPEG");
++
++        if (tditrace) tditrace("@T+JPEGImageDecoder::frameBufferAtIndex()");
++
+         decode(false);
++
++        if (tditrace) tditrace("@T-JPEGImageDecoder::frameBufferAtIndex()");
++
+         PlatformInstrumentation::didDecodeImage();
+     }
+     return &frame;
+diff -Naur a/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp b/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp
+--- a/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp	2015-06-14 14:43:02.719820210 -0700
++++ b/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp	2015-06-14 14:43:02.871820213 -0700
+@@ -50,6 +50,8 @@
+ #include "qcms.h"
+ #endif
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ #if defined(PNG_LIBPNG_VER_MAJOR) && defined(PNG_LIBPNG_VER_MINOR) && (PNG_LIBPNG_VER_MAJOR > 1 || (PNG_LIBPNG_VER_MAJOR == 1 && PNG_LIBPNG_VER_MINOR >= 4))
+ #define JMPBUF(png_ptr) png_jmpbuf(png_ptr)
+ #else
+@@ -259,7 +261,13 @@
+     ImageFrame& frame = m_frameBufferCache[0];
+     if (frame.status() != ImageFrame::FrameComplete) {
+         PlatformInstrumentation::willDecodeImage("PNG");
++
++        if (tditrace) tditrace("@T+PNGImageDecoder::frameBufferAtIndex()");
++
+         decode(false);
++
++        if (tditrace) tditrace("@T-PNGImageDecoder::frameBufferAtIndex()");
++
+         PlatformInstrumentation::didDecodeImage();
+     }
+     return &frame;
+diff -Naur a/Source/WebCore/rendering/RenderBlock.cpp b/Source/WebCore/rendering/RenderBlock.cpp
+--- a/Source/WebCore/rendering/RenderBlock.cpp	2015-06-14 14:43:02.671820209 -0700
++++ b/Source/WebCore/rendering/RenderBlock.cpp	2015-06-14 14:43:02.807820211 -0700
+@@ -70,6 +70,8 @@
+ #include "ShapeOutsideInfo.h"
+ #endif
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ using namespace std;
+ using namespace WTF;
+ using namespace Unicode;
+@@ -2970,6 +2972,43 @@
+  
+ void RenderBlock::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
+ {
++    StringBuilder name;
++
++    if (Element* element = node() && node()->isElementNode() ? toElement(node()) : 0) {
++        name.append(element->tagName());
++
++        if (element->hasID()) {
++            name.appendLiteral(" id=\'");
++            name.append(element->getIdAttribute());
++            name.append('\'');
++        }
++
++        if (element->hasClass()) {
++            name.appendLiteral(" class=\'");
++            for (size_t i = 0; i < element->classNames().size(); ++i) {
++                if (i > 0)
++                    name.append(' ');
++                name.append(element->classNames()[i]);
++            }
++            name.append('\'');
++        }
++    }
++
++    char text[128];
++    int i;
++    if (name.toString().is8Bit()) {
++        i = name.toString().length() < 127 ? name.toString().length() : 127;
++        strncpy(text, (char*)name.toString().characters8(), i);
++    } else {
++        char* p = (char*)name.toString().characters8();
++        for (i = 0 ; i < (name.toString().length() < 127 ? name.toString().length() : 127) ; i++) {
++            text[i] = p[i];
++        }
++    }
++    text[i]=0;
++    if (tditrace) tditrace("RenderBlock::paint() %s,%dx%d+%d+%d,+%d+%d", text, paintInfo.rect.width(), paintInfo.rect.height(), paintInfo.rect.x(), paintInfo.rect.y(), paintOffset.x().toInt(), paintOffset.y().toInt());
++    if (tditrace) tditrace("@T+RenderBlock::paint()");
++
+     LayoutPoint adjustedPaintOffset = paintOffset + location();
+     
+     PaintPhase phase = paintInfo.phase;
+@@ -2982,8 +3021,11 @@
+         flipForWritingMode(overflowBox);
+         overflowBox.inflate(maximalOutlineSize(paintInfo.phase));
+         overflowBox.moveBy(adjustedPaintOffset);
+-        if (!overflowBox.intersects(paintInfo.rect))
++        if (!overflowBox.intersects(paintInfo.rect)) {
++
++            if (tditrace) tditrace("@T-RenderBlock::paint()");
+             return;
++        }
+     }
+ 
+     bool pushedClip = pushContentsClip(paintInfo, adjustedPaintOffset);
+@@ -2996,6 +3038,8 @@
+     // sit above the background/border.
+     if (hasOverflowClip() && style()->visibility() == VISIBLE && (phase == PaintPhaseBlockBackground || phase == PaintPhaseChildBlockBackground) && paintInfo.shouldPaintWithinRoot(this) && !paintInfo.paintRootBackgroundOnly())
+         layer()->paintOverflowControls(paintInfo.context, roundedIntPoint(adjustedPaintOffset), paintInfo.rect);
++
++    if (tditrace) tditrace("@T-RenderBlock::paint()");
+ }
+ 
+ void RenderBlock::paintColumnRules(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
+diff -Naur a/Source/WebCore/rendering/RenderBox.cpp b/Source/WebCore/rendering/RenderBox.cpp
+--- a/Source/WebCore/rendering/RenderBox.cpp	2015-06-14 14:43:02.691820209 -0700
++++ b/Source/WebCore/rendering/RenderBox.cpp	2015-06-14 14:43:02.831820212 -0700
+@@ -61,6 +61,8 @@
+ #include "RenderLayerCompositor.h"
+ #endif
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ using namespace std;
+ 
+ namespace WebCore {
+@@ -1039,6 +1041,8 @@
+ 
+ void RenderBox::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
+ {
++    if (tditrace) tditrace("RenderBox::paint()");
++
+     LayoutPoint adjustedPaintOffset = paintOffset + location();
+     // default implementation. Just pass paint through to the children
+     PaintInfo childInfo(paintInfo);
+@@ -1100,6 +1104,8 @@
+     if (!paintInfo.shouldPaintWithinRoot(this))
+         return;
+ 
++    if (tditrace) tditrace("@T+RenderBox::paintBoxDecorations()");
++
+     LayoutRect paintRect = borderBoxRectInRegion(paintInfo.renderRegion);
+     paintRect.moveBy(paintOffset);
+ 
+@@ -1142,19 +1148,32 @@
+ 
+     if (bleedAvoidance == BackgroundBleedUseTransparencyLayer)
+         paintInfo.context->endTransparencyLayer();
++
++    if (tditrace) tditrace("@T-RenderBox::paintBoxDecorations()");
+ }
+ 
+ void RenderBox::paintBackground(const PaintInfo& paintInfo, const LayoutRect& paintRect, BackgroundBleedAvoidance bleedAvoidance)
+ {
+     if (isRoot()) {
++
++        if (tditrace) tditrace("@T+RenderBox::paintBackground()");
++
+         paintRootBoxFillLayers(paintInfo);
++
++        if (tditrace) tditrace("@T-RenderBox::paintBackground()");
++
+         return;
+     }
+     if (isBody() && skipBodyBackground(this))
+         return;
+     if (backgroundIsKnownToBeObscured() && !boxShadowShouldBeAppliedToBackground(bleedAvoidance))
+         return;
++
++    if (tditrace) tditrace("@T+RenderBox::paintBackground()");
++
+     paintFillLayers(paintInfo, style()->visitedDependentColor(CSSPropertyBackgroundColor), style()->backgroundLayers(), paintRect, bleedAvoidance);
++
++    if (tditrace) tditrace("@T-RenderBox::paintBackground()");
+ }
+ 
+ bool RenderBox::getBackgroundPaintedExtent(LayoutRect& paintedExtent) const
+diff -Naur a/Source/WebCore/rendering/RenderImage.cpp b/Source/WebCore/rendering/RenderImage.cpp
+--- a/Source/WebCore/rendering/RenderImage.cpp	2015-06-14 14:43:02.655820208 -0700
++++ b/Source/WebCore/rendering/RenderImage.cpp	2015-06-14 14:43:02.787820211 -0700
+@@ -47,6 +47,8 @@
+ #include "SVGImage.h"
+ #include <wtf/StackStats.h>
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ using namespace std;
+ 
+ namespace WebCore {
+@@ -408,6 +410,8 @@
+ 
+ void RenderImage::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
+ {
++    if (tditrace) tditrace("RenderImage::paint() %dx%d+%d+%d,+%d+%d", paintInfo.rect.width(), paintInfo.rect.height(), paintInfo.rect.x(), paintInfo.rect.y(), paintOffset.x().toInt(), paintOffset.y().toInt());
++
+     RenderReplaced::paint(paintInfo, paintOffset);
+     
+     if (paintInfo.phase == PaintPhaseOutline)
+diff -Naur a/Source/WebCore/rendering/RenderLayerBacking.cpp b/Source/WebCore/rendering/RenderLayerBacking.cpp
+--- a/Source/WebCore/rendering/RenderLayerBacking.cpp	2015-06-14 14:43:02.655820208 -0700
++++ b/Source/WebCore/rendering/RenderLayerBacking.cpp	2015-06-14 14:43:02.787820211 -0700
+@@ -71,6 +71,8 @@
+ #include "GraphicsContext3D.h"
+ #endif
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ using namespace std;
+ 
+ namespace WebCore {
+@@ -2024,6 +2026,8 @@
+         || graphicsLayer == m_scrollingContentsLayer.get()) {
+         InspectorInstrumentation::willPaint(renderer());
+ 
++        if (tditrace) tditrace("@T+RenderLayerBacking::paintContents()");
++
+         // The dirtyRect is in the coords of the painting root.
+         IntRect dirtyRect = clip;
+         if (!(paintingPhase & GraphicsLayerPaintOverflowContents))
+@@ -2033,6 +2037,9 @@
+         paintIntoLayer(graphicsLayer, &context, dirtyRect, PaintBehaviorNormal, paintingPhase);
+ 
+         InspectorInstrumentation::didPaint(renderer(), &context, clip);
++
++        if (tditrace) tditrace("@T-RenderLayerBacking::paintContents()");
++
+     } else if (graphicsLayer == layerForHorizontalScrollbar()) {
+         paintScrollbar(m_owningLayer->horizontalScrollbar(), context, clip);
+     } else if (graphicsLayer == layerForVerticalScrollbar()) {
+@@ -2166,6 +2173,8 @@
+ 
+ bool RenderLayerBacking::startTransition(double timeOffset, CSSPropertyID property, const RenderStyle* fromStyle, const RenderStyle* toStyle)
+ {
++    if (tditrace) tditrace("RenderLayerBacking::startTransition() timeOffset=%f,property=%d", timeOffset, (int)property);
++
+     bool didAnimate = false;
+ 
+     ASSERT(property != CSSPropertyInvalid);
+@@ -2220,6 +2229,8 @@
+ 
+ void RenderLayerBacking::transitionPaused(double timeOffset, CSSPropertyID property)
+ {
++    if (tditrace) tditrace("RenderLayerBacking::transitionPaused()");
++
+     AnimatedPropertyID animatedProperty = cssToGraphicsLayerProperty(property);
+     if (animatedProperty != AnimatedPropertyInvalid)
+         m_graphicsLayer->pauseAnimation(GraphicsLayer::animationNameForTransition(animatedProperty), timeOffset);
+@@ -2227,6 +2238,8 @@
+ 
+ void RenderLayerBacking::transitionFinished(CSSPropertyID property)
+ {
++    if (tditrace) tditrace("RenderLayerBacking::transitionFinished()");
++
+     AnimatedPropertyID animatedProperty = cssToGraphicsLayerProperty(property);
+     if (animatedProperty != AnimatedPropertyInvalid)
+         m_graphicsLayer->removeAnimation(GraphicsLayer::animationNameForTransition(animatedProperty));
+diff -Naur a/Source/WebCore/rendering/RenderLayer.cpp b/Source/WebCore/rendering/RenderLayer.cpp
+--- a/Source/WebCore/rendering/RenderLayer.cpp	2015-06-14 14:43:02.683820209 -0700
++++ b/Source/WebCore/rendering/RenderLayer.cpp	2015-06-14 14:43:02.823820212 -0700
+@@ -126,6 +126,8 @@
+ #include "ValidatedCustomFilterOperation.h"
+ #endif
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ #define MIN_INTERSECT_FOR_REVEAL 32
+ 
+ using namespace std;
+@@ -3605,6 +3607,24 @@
+ 
+ void RenderLayer::paintLayer(GraphicsContext* context, const LayerPaintingInfo& paintingInfo, PaintLayerFlags paintFlags)
+ {
++    char text[128];
++    int i;
++    if (name().is8Bit()) {
++        i = name().length() < 127 ? name().length() : 127;
++        strncpy(text, (char*)name().characters8(), i);
++    } else {
++        char* p = (char*)name().characters8();
++        for (i = 0 ; i < (name().length() < 127 ? name().length() : 127) ; i++) {
++            text[i] = p[i];
++        }
++    }
++    text[i]=0;
++    if (tditrace) tditrace("RenderLayer::paintLayer() %s %dx%d+%d+%d", text,
++        paintingInfo.paintDirtyRect.width().toInt(),
++        paintingInfo.paintDirtyRect.height().toInt(),
++        paintingInfo.paintDirtyRect.x().toInt(),
++        paintingInfo.paintDirtyRect.y().toInt());
++
+ #if USE(ACCELERATED_COMPOSITING)
+     if (isComposited()) {
+         // The updatingControlTints() painting pass goes through compositing layers,
+@@ -3616,26 +3636,34 @@
+             && !shouldDoSoftwarePaint(this, paintFlags & PaintLayerPaintingReflection)
+             && !paintForFixedRootBackground(this, paintFlags)) {
+             // If this RenderLayer should paint into its backing, that will be done via RenderLayerBacking::paintIntoLayer().
++            if (tditrace) tditrace("@T-RenderLayer::paintLayer()");
+             return;
+         }
+     } else if (viewportConstrainedNotCompositedReason() == NotCompositedForBoundsOutOfView) {
+         // Don't paint out-of-view viewport constrained layers (when doing prepainting) because they will never be visible
+         // unless their position or viewport size is changed.
+         ASSERT(renderer()->style()->position() == FixedPosition);
++        if (tditrace) tditrace("@T-RenderLayer::paintLayer()");
+         return;
+     }
+ #endif
+ 
+     // Non self-painting leaf layers don't need to be painted as their renderer() should properly paint itself.
+-    if (!isSelfPaintingLayer() && !hasSelfPaintingLayerDescendant())
++    if (!isSelfPaintingLayer() && !hasSelfPaintingLayerDescendant()) {
++        if (tditrace) tditrace("@T-RenderLayer::paintLayer()");
+         return;
++    }
+ 
+-    if (shouldSuppressPaintingLayer(this))
++    if (shouldSuppressPaintingLayer(this)) {
++        if (tditrace) tditrace("@T-RenderLayer::paintLayer()");
+         return;
++    }
+     
+     // If this layer is totally invisible then there is nothing to paint.
+-    if (!renderer()->opacity())
++    if (!renderer()->opacity()) {
++        if (tditrace) tditrace("@T-RenderLayer::paintLayer()");
+         return;
++    }
+ 
+     if (paintsWithTransparency(paintingInfo.paintBehavior))
+         paintFlags |= PaintLayerHaveTransparency;
+@@ -3644,8 +3672,10 @@
+     if (paintsWithTransform(paintingInfo.paintBehavior) && !(paintFlags & PaintLayerAppliedTransform)) {
+         TransformationMatrix layerTransform = renderableTransform(paintingInfo.paintBehavior);
+         // If the transform can't be inverted, then don't paint anything.
+-        if (!layerTransform.isInvertible())
++        if (!layerTransform.isInvertible()) {
++            if (tditrace) tditrace("@T-RenderLayer::paintLayer()");
+             return;
++        }
+ 
+         // If we have a transparency layer enclosing us and we are the root of a transform, then we need to establish the transparency
+         // layer from the parent now, assuming there is a parent
+@@ -3658,6 +3688,7 @@
+ 
+         if (enclosingPaginationLayer()) {
+             paintTransformedLayerIntoFragments(context, paintingInfo, paintFlags);
++            if (tditrace) tditrace("@T-RenderLayer::paintLayer()");
+             return;
+         }
+ 
+@@ -3679,10 +3710,13 @@
+         if (parent())
+             parent()->restoreClip(context, paintingInfo.paintDirtyRect, clipRect);
+ 
++        if (tditrace) tditrace("@T-RenderLayer::paintLayer()");
+         return;
+     }
+     
+     paintLayerContentsAndReflection(context, paintingInfo, paintFlags);
++
++    if (tditrace) tditrace("@T-RenderLayer::paintLayer()");
+ }
+ 
+ void RenderLayer::paintLayerContentsAndReflection(GraphicsContext* context, const LayerPaintingInfo& paintingInfo, PaintLayerFlags paintFlags)
+diff -Naur a/Source/WebCore/rendering/RenderVideo.cpp b/Source/WebCore/rendering/RenderVideo.cpp
+--- a/Source/WebCore/rendering/RenderVideo.cpp	2015-06-14 14:43:02.651820208 -0700
++++ b/Source/WebCore/rendering/RenderVideo.cpp	2015-06-14 14:43:02.779820211 -0700
+@@ -44,6 +44,8 @@
+ #include "RenderFullScreen.h"
+ #endif
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ namespace WebCore {
+ 
+ using namespace HTMLNames;
+@@ -192,6 +194,8 @@
+     MediaPlayer* mediaPlayer = mediaElement()->player();
+     bool displayingPoster = videoElement()->shouldDisplayPosterImage();
+ 
++    if (tditrace) tditrace("RenderVideo::paintReplaced() %dx%d+%d+%d,+%d+%d", paintInfo.rect.width(), paintInfo.rect.height(), paintInfo.rect.x(), paintInfo.rect.y(), paintOffset.x().toInt(), paintOffset.y().toInt());
++
+     Page* page = 0;
+     if (Frame* frame = this->frame())
+         page = frame->page();
+diff -Naur a/Source/WebKit/qt/WebCoreSupport/QWebFrameAdapter.cpp b/Source/WebKit/qt/WebCoreSupport/QWebFrameAdapter.cpp
+--- a/Source/WebKit/qt/WebCoreSupport/QWebFrameAdapter.cpp	2015-06-14 14:43:02.755820210 -0700
++++ b/Source/WebKit/qt/WebCoreSupport/QWebFrameAdapter.cpp	2015-06-14 14:43:02.903820213 -0700
+@@ -65,6 +65,8 @@
+ #include <QFileInfo>
+ #include <QNetworkRequest>
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ using namespace WebCore;
+ 
+ static inline ResourceRequestCachePolicy cacheLoadControlToCachePolicy(uint cacheLoadControl)
+@@ -508,6 +510,9 @@
+     if (vector.isEmpty())
+         return;
+ 
++
++    if (tditrace) tditrace("@T+QWebFrameAdapter::renderRelativeCoords()");
++
+     WebCore::FrameView* view = frame->view();
+     view->updateLayoutAndStyleIfNeededRecursive();
+ 
+@@ -550,6 +555,8 @@
+         context.restore();
+     }
+ #endif
++
++    if (tditrace) tditrace("@T-QWebFrameAdapter::renderRelativeCoords()");
+ }
+ 
+ void QWebFrameAdapter::renderFrameExtras(WebCore::GraphicsContext* context, int layers, const QRegion& clip)
+diff -Naur a/Source/WebKit/qt/WebCoreSupport/TextureMapperLayerClientQt.cpp b/Source/WebKit/qt/WebCoreSupport/TextureMapperLayerClientQt.cpp
+--- a/Source/WebKit/qt/WebCoreSupport/TextureMapperLayerClientQt.cpp	2015-06-14 14:43:02.751820210 -0700
++++ b/Source/WebKit/qt/WebCoreSupport/TextureMapperLayerClientQt.cpp	2015-06-14 14:43:02.903820213 -0700
+@@ -22,6 +22,8 @@
+ #include "config.h"
+ #include "TextureMapperLayerClientQt.h"
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ #if USE(ACCELERATED_COMPOSITING)
+ 
+ #include "FrameView.h"
+@@ -84,18 +86,24 @@
+ 
+ void TextureMapperLayerClientQt::syncLayers(Timer<TextureMapperLayerClientQt>*)
+ {
++    if (tditrace) tditrace("@T+TextureMapperLayerClientQt::syncLayers()");
++
+     if (m_rootGraphicsLayer)
+         syncRootLayer();
+ 
+     m_frame->frame->view()->flushCompositingStateIncludingSubframes();
+ 
+-    if (!m_rootGraphicsLayer)
++    if (!m_rootGraphicsLayer) {
++        if (tditrace) tditrace("TextureMapperLayerClientQt::syncLayers()");
+         return;
++    }
+ 
+     if (rootLayer()->descendantsOrSelfHaveRunningAnimations() && !m_syncTimer.isActive())
+         m_syncTimer.startOneShot(1.0 / 70.0);
+ 
+     m_frame->pageAdapter->client->repaintViewport();
++
++    if (tditrace) tditrace("@T-TextureMapperLayerClientQt::syncLayers()");
+ }
+ 
+ void TextureMapperLayerClientQt::renderCompositedLayers(GraphicsContext* context, const IntRect& clip)
+@@ -103,6 +111,8 @@
+     if (!m_rootTextureMapperLayer || !m_textureMapper)
+         return;
+ 
++    if (tditrace) tditrace("@T+TextureMapperLayerClientQt::renderCompositedLayers()");
++
+     m_textureMapper->setGraphicsContext(context);
+     // GraphicsContext::imageInterpolationQuality is always InterpolationDefault here,
+     // but 'default' may be interpreted differently due to a different backend QPainter,
+@@ -141,6 +151,8 @@
+     m_fpsCounter.updateFPSAndDisplay(m_textureMapper.get(), IntPoint::zero(), matrix);
+     m_textureMapper->endClip();
+     m_textureMapper->endPainting();
++
++    if (tditrace) tditrace("@T-TextureMapperLayerClientQt::renderCompositedLayers()");
+ }
+ 
+ #endif
+diff -Naur a/Source/WebKit/qt/WidgetApi/qgraphicswebview.cpp b/Source/WebKit/qt/WidgetApi/qgraphicswebview.cpp
+--- a/Source/WebKit/qt/WidgetApi/qgraphicswebview.cpp	2015-06-14 14:43:02.751820210 -0700
++++ b/Source/WebKit/qt/WidgetApi/qgraphicswebview.cpp	2015-06-14 14:43:02.899820213 -0700
+@@ -43,6 +43,8 @@
+ #include <QX11Info>
+ #endif
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ using namespace WebCore;
+ 
+ class QGraphicsWebViewPrivate {
+@@ -242,6 +244,8 @@
+ */
+ void QGraphicsWebView::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget*)
+ {
++    if (tditrace) tditrace("@T+QGraphicsWebView::paint()");
++
+ #ifndef QT_NO_OPENGL
+     d->page->d->saveGLContext();
+ #endif
+@@ -252,11 +256,14 @@
+     // QWebFrame::render is a public API, bypass it for tiled rendering so behavior does not need to change.
+     if (page()->mainFrame()->d->renderFromTiledBackingStore(painter, option->exposedRect.toAlignedRect())) {
+         painter->setRenderHints(oldHints);
++        if (tditrace) tditrace("@T+QGraphicsWebView::paint()");
+         return;
+     }
+ #endif
+     page()->mainFrame()->render(painter, QWebFrame::AllLayers, option->exposedRect.toRect());
+     painter->setRenderHints(oldHints);
++
++    if (tditrace) tditrace("@T-QGraphicsWebView::paint()");
+ }
+ 
+ /*! \reimp
+diff -Naur a/Source/WebKit/qt/WidgetApi/qwebframe.cpp b/Source/WebKit/qt/WidgetApi/qwebframe.cpp
+--- a/Source/WebKit/qt/WidgetApi/qwebframe.cpp	2015-06-14 14:43:02.747820210 -0700
++++ b/Source/WebKit/qt/WidgetApi/qwebframe.cpp	2015-06-14 14:43:02.899820213 -0700
+@@ -41,6 +41,8 @@
+ #include <qnetworkrequest.h>
+ #include <qregion.h>
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ using namespace WebCore;
+ 
+ // from text/qfont.cpp
+@@ -640,10 +642,14 @@
+ 
+ void QWebFrame::render(QPainter* painter, RenderLayers layer, const QRegion& clip)
+ {
++    if (tditrace) tditrace("@T+QWebFrame::render()");
++
+     if (!clip.isEmpty())
+         d->renderRelativeCoords(painter, layer, clip);
+     else if (d->hasView())
+         d->renderRelativeCoords(painter, layer, QRegion(d->frameRect()));
++
++    if (tditrace) tditrace("@T-QWebFrame::render()");
+ }
+ 
+ /*!

@@ -1,0 +1,9 @@
+config BR2_PACKAGE_QTP
+	bool "qtp"
+	help
+	  Qtp
+
+if BR2_PACKAGE_QTP
+source "package/qtp/qtpbase/Config.in"
+source "package/qtp/qtpwebkit/Config.in"
+endif

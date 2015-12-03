@@ -1,0 +1,446 @@
+diff -Naur a/src/gui/kernel/qopenglcontext.cpp b/src/gui/kernel/qopenglcontext.cpp
+--- a/src/gui/kernel/qopenglcontext.cpp	2015-06-14 14:43:02.375820203 -0700
++++ b/src/gui/kernel/qopenglcontext.cpp	2015-06-14 14:43:02.459820205 -0700
+@@ -58,6 +58,8 @@
+ #include <QOpenGLFunctions_3_2_Core>
+ #endif
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ QT_BEGIN_NAMESPACE
+ 
+ class QOpenGLVersionProfilePrivate
+@@ -415,10 +417,15 @@
+ */
+ QOpenGLContext* QOpenGLContext::currentContext()
+ {
++    if (tditrace) tditrace("@T+QOpenGLContext::currentContext()");
++
+     QGuiGLThreadContext *threadContext = qwindow_context_storage.localData();
+     if(threadContext) {
++        if (tditrace) tditrace("@T-QOpenGLContext::currentContext()");
+         return threadContext->context;
+     }
++
++    if (tditrace) tditrace("@T-QOpenGLContext::currentContext()");
+     return 0;
+ }
+ 
+diff -Naur a/src/opengl/gl2paintengineex/qpaintengineex_opengl2.cpp b/src/opengl/gl2paintengineex/qpaintengineex_opengl2.cpp
+--- a/src/opengl/gl2paintengineex/qpaintengineex_opengl2.cpp	2015-06-14 14:43:02.371820203 -0700
++++ b/src/opengl/gl2paintengineex/qpaintengineex_opengl2.cpp	2015-06-14 14:43:02.455820205 -0700
+@@ -82,6 +82,8 @@
+ # include <qopenglfunctions_1_1.h>
+ #endif
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ QT_BEGIN_NAMESPACE
+ 
+ 
+@@ -2016,6 +2018,8 @@
+ 
+ bool QGL2PaintEngineEx::begin(QPaintDevice *pdev)
+ {
++    if (tditrace) tditrace("@T+QGL2PaintEngineEx::begin()");
++
+     Q_D(QGL2PaintEngineEx);
+ 
+ //     qDebug("QGL2PaintEngineEx::begin()");
+@@ -2083,11 +2087,15 @@
+     d->multisamplingAlwaysEnabled = d->device->format().sampleBuffers();
+ #endif
+ 
++    if (tditrace) tditrace("@T-QGL2PaintEngineEx::begin()");
++
+     return true;
+ }
+ 
+ bool QGL2PaintEngineEx::end()
+ {
++    if (tditrace) tditrace("@T+QGL2PaintEngineEx::end()");
++
+     Q_D(QGL2PaintEngineEx);
+ 
+     QGLContext *ctx = d->ctx;
+@@ -2116,6 +2124,8 @@
+     }
+ #endif
+ 
++    if (tditrace) tditrace("@T-QGL2PaintEngineEx::end()");
++
+     return false;
+ }
+ 
+diff -Naur a/src/platformsupport/eglconvenience/qeglplatformcontext.cpp b/src/platformsupport/eglconvenience/qeglplatformcontext.cpp
+--- a/src/platformsupport/eglconvenience/qeglplatformcontext.cpp	2015-06-14 14:43:02.303820202 -0700
++++ b/src/platformsupport/eglconvenience/qeglplatformcontext.cpp	2015-06-14 14:43:02.375820203 -0700
+@@ -39,6 +39,8 @@
+ #include <QtPlatformHeaders/QEGLNativeContext>
+ #include <QDebug>
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ QT_BEGIN_NAMESPACE
+ 
+ /*!
+@@ -241,6 +243,9 @@
+ void QEGLPlatformContext::updateFormatFromGL()
+ {
+ #ifndef QT_NO_OPENGL
++
++    if (tditrace) tditrace("@T+QEGLPlatformContext::updateFormatFromGL()");
++
+     // Have to save & restore to prevent QOpenGLContext::currentContext() from becoming
+     // inconsistent after QOpenGLContext::create().
+     EGLDisplay prevDisplay = eglGetCurrentDisplay();
+@@ -262,9 +267,10 @@
+     // PBUFFER_BIT set.
+     EGLConfig config = q_configFromGLFormat(m_eglDisplay, m_format, false, EGL_PBUFFER_BIT);
+     EGLSurface pbuffer = eglCreatePbufferSurface(m_eglDisplay, config, pbufferAttributes);
+-    if (pbuffer == EGL_NO_SURFACE)
++    if (pbuffer == EGL_NO_SURFACE) {
++        if (tditrace) tditrace("@T-QEGLPlatformContext::updateFormatFromGL()");
+         return;
+-
++    }
+     if (eglMakeCurrent(m_eglDisplay, pbuffer, pbuffer, m_eglContext)) {
+         if (m_format.renderableType() == QSurfaceFormat::OpenGL
+             || m_format.renderableType() == QSurfaceFormat::OpenGLES) {
+@@ -304,6 +310,9 @@
+         eglMakeCurrent(prevDisplay, prevSurfaceDraw, prevSurfaceRead, prevContext);
+     }
+     eglDestroySurface(m_eglDisplay, pbuffer);
++
++    if (tditrace) tditrace("@T-QEGLPlatformContext::updateFormatFromGL()");
++
+ #endif // QT_NO_OPENGL
+ }
+ 
+@@ -311,6 +320,8 @@
+ {
+     Q_ASSERT(surface->surface()->supportsOpenGL());
+ 
++    if (tditrace) tditrace("@T+QEGLPlatformContext::makeCurrent()");
++
+     eglBindAPI(m_api);
+ 
+     EGLSurface eglSurface = eglSurfaceForPlatformSurface(surface);
+@@ -320,6 +331,8 @@
+         eglGetCurrentDisplay() == m_eglDisplay &&
+         eglGetCurrentSurface(EGL_READ) == eglSurface &&
+         eglGetCurrentSurface(EGL_DRAW) == eglSurface) {
++    
++        if (tditrace) tditrace("@T-QEGLPlatformContext::makeCurrent()");
+         return true;
+     }
+ 
+@@ -346,6 +359,7 @@
+         qWarning("QEGLPlatformContext::makeCurrent: eglError: %x, this: %p \n", eglGetError(), this);
+     }
+ 
++    if (tditrace) tditrace("@T-QEGLPlatformContext::makeCurrent()");
+     return ok;
+ }
+ 
+@@ -359,10 +373,14 @@
+ 
+ void QEGLPlatformContext::doneCurrent()
+ {
++    if (tditrace) tditrace("@T+QEGLPlatformContext::doneCurrent()");
++
+     eglBindAPI(m_api);
+     bool ok = eglMakeCurrent(m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+     if (!ok)
+         qWarning("QEGLPlatformContext::doneCurrent(): eglError: %d, this: %p \n", eglGetError(), this);
++
++    if (tditrace) tditrace("@T-QEGLPlatformContext::doneCurrent()");
+ }
+ 
+ void QEGLPlatformContext::swapBuffers(QPlatformSurface *surface)
+diff -Naur a/src/widgets/graphicsview/qgraphicsitem.cpp b/src/widgets/graphicsview/qgraphicsitem.cpp
+--- a/src/widgets/graphicsview/qgraphicsitem.cpp	2015-06-14 14:43:02.331820202 -0700
++++ b/src/widgets/graphicsview/qgraphicsitem.cpp	2015-06-14 14:43:02.403820204 -0700
+@@ -764,6 +764,8 @@
+ 
+ #include <math.h>
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ QT_BEGIN_NAMESPACE
+ 
+ static inline void _q_adjustRect(QRect *rect)
+@@ -5708,6 +5710,8 @@
+     if (rect.isEmpty() && !rect.isNull())
+         return;
+ 
++    if (tditrace) tditrace("@T+QGraphicsItem::update()");
++
+     // Make sure we notify effects about invalidated source.
+ #ifndef QT_NO_GRAPHICSEFFECT
+     d_ptr->invalidateParentGraphicsEffectsRecursively();
+@@ -5725,12 +5729,16 @@
+             }
+         }
+         // Only invalidate cache; item is already dirty.
+-        if (d_ptr->fullUpdatePending)
++        if (d_ptr->fullUpdatePending) {
++            if (tditrace) tditrace("@T-QGraphicsItem::update()");
+             return;
++        }
+     }
+ 
+     if (d_ptr->scene)
+         d_ptr->scene->d_func()->markDirty(this, rect);
++
++    if (tditrace) tditrace("@T-QGraphicsItem::update()");
+ }
+ 
+ /*!
+diff -Naur a/src/widgets/graphicsview/qgraphicsscene.cpp b/src/widgets/graphicsview/qgraphicsscene.cpp
+--- a/src/widgets/graphicsview/qgraphicsscene.cpp	2015-06-14 14:43:02.339820203 -0700
++++ b/src/widgets/graphicsview/qgraphicsscene.cpp	2015-06-14 14:43:02.415820204 -0700
+@@ -250,6 +250,8 @@
+ # define DEBUG qDebug
+ #endif
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ QT_BEGIN_NAMESPACE
+ 
+ bool qt_sendSpontaneousEvent(QObject *receiver, QEvent *event);
+@@ -461,6 +463,8 @@
+ 
+ void QGraphicsScenePrivate::_q_processDirtyItems()
+ {
++    if (tditrace) tditrace("@T+QGraphicsScenePrivate::_q_processDirtyItems()");
++
+     processDirtyItemsEmitted = false;
+ 
+     if (updateAll) {
+@@ -469,6 +473,7 @@
+         // The growingItemsBoundingRect is updated in _q_emitUpdated.
+         for (int i = 0; i < topLevelItems.size(); ++i)
+             resetDirtyItem(topLevelItems.at(i), /*recursive=*/true);
++        if (tditrace) tditrace("@T-QGraphicsScenePrivate::_q_processDirtyItems()");
+         return;
+     }
+ 
+@@ -483,8 +488,10 @@
+     if (!hasSceneRect && oldGrowingItemsBoundingRect != growingItemsBoundingRect)
+         emit q_func()->sceneRectChanged(growingItemsBoundingRect);
+ 
+-    if (wasPendingSceneUpdate)
++    if (wasPendingSceneUpdate) {
++        if (tditrace) tditrace("@T-QGraphicsScenePrivate::_q_processDirtyItems()");
+         return;
++    }
+ 
+     for (int i = 0; i < views.size(); ++i)
+         views.at(i)->d_func()->processPendingUpdates();
+@@ -499,6 +506,8 @@
+     // Immediately dispatch all pending update requests on the views.
+     for (int i = 0; i < views.size(); ++i)
+         views.at(i)->d_func()->dispatchPendingUpdateRequests();
++
++    if (tditrace) tditrace("@T-QGraphicsScenePrivate::_q_processDirtyItems()");
+ }
+ 
+ /*!
+@@ -4948,6 +4957,8 @@
+                                       bool force, bool ignoreOpacity, bool removingItemFromScene,
+                                       bool updateBoundingRect)
+ {
++    if (tditrace) tditrace("@T+QGraphicsScenePrivate::markDirty()");
++
+     Q_ASSERT(item);
+     if (updateAll)
+         return;
+@@ -4983,6 +4994,7 @@
+             if (ignoreOpacity)
+                 item->d_ptr->ignoreOpacity = 1;
+         }
++        if (tditrace) tditrace("@T-QGraphicsScenePrivate::markDirty()");
+         return;
+     }
+ 
+@@ -5014,6 +5026,7 @@
+             rect.translate(viewPrivate->dirtyScrollOffset);
+             viewPrivate->updateRect(rect);
+         }
++        if (tditrace) tditrace("@T-QGraphicsScenePrivate::markDirty()");
+         return;
+     }
+ 
+@@ -5040,6 +5053,8 @@
+ 
+     if (!updateBoundingRect)
+         item->d_ptr->markParentDirty();
++
++    if (tditrace) tditrace("@T-QGraphicsScenePrivate::markDirty()");
+ }
+ 
+ static inline bool updateHelper(QGraphicsViewPrivate *view, QGraphicsItemPrivate *item,
+diff -Naur a/src/widgets/graphicsview/qgraphicsview.cpp b/src/widgets/graphicsview/qgraphicsview.cpp
+--- a/src/widgets/graphicsview/qgraphicsview.cpp	2015-06-14 14:43:02.347820203 -0700
++++ b/src/widgets/graphicsview/qgraphicsview.cpp	2015-06-14 14:43:02.431820204 -0700
+@@ -290,6 +290,8 @@
+ 
+ #include <private/qevent_p.h>
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ QT_BEGIN_NAMESPACE
+ 
+ bool qt_sendSpontaneousEvent(QObject *receiver, QEvent *event);
+@@ -914,8 +916,11 @@
+ /*!
+     \internal
+ */
++
+ void QGraphicsViewPrivate::processPendingUpdates()
+ {
++    if (tditrace) tditrace("@T+QGraphicsView::processPendingUpdates()");
++
+     if (!scene)
+         return;
+ 
+@@ -929,6 +934,8 @@
+ 
+     dirtyBoundingRect = QRect();
+     dirtyRegion = QRegion();
++
++    if (tditrace) tditrace("@T-QGraphicsView::processPendingUpdates()");
+ }
+ 
+ static inline bool intersectsViewport(const QRect &r, int width, int height)
+@@ -3444,6 +3451,8 @@
+ */
+ void QGraphicsView::paintEvent(QPaintEvent *event)
+ {
++    if (tditrace) tditrace("@T+QGraphicsView::paintEvent()");
++
+     Q_D(QGraphicsView);
+     if (!d->scene) {
+         QAbstractScrollArea::paintEvent(event);
+@@ -3606,6 +3615,8 @@
+ 
+     // Restore painter state protection.
+     d->scene->d_func()->painterStateProtection = true;
++
++    if (tditrace) tditrace("@T-QGraphicsView::paintEvent()");
+ }
+ 
+ /*!
+diff -Naur a/src/widgets/kernel/qwidget.cpp b/src/widgets/kernel/qwidget.cpp
+--- a/src/widgets/kernel/qwidget.cpp	2015-06-14 14:43:02.367820203 -0700
++++ b/src/widgets/kernel/qwidget.cpp	2015-06-14 14:43:02.451820205 -0700
+@@ -73,6 +73,8 @@
+ #include <QtGui/qopenglcontext.h>
+ #include <QtGui/private/qopenglcontext_p.h>
+ 
++extern "C" void tditrace(const char* format, ...) __attribute__((weak));
++
+ #include <private/qgraphicseffect_p.h>
+ #include <qbackingstore.h>
+ #include <private/qwidgetbackingstore_p.h>
+@@ -5392,6 +5394,8 @@
+     if (rgn.isEmpty())
+         return;
+ 
++    if (tditrace) tditrace("@T+QWidgetPrivate::drawWidget()");
++
+     const bool asRoot = flags & DrawAsRoot;
+     bool onScreen = paintOnScreen();
+ 
+@@ -5588,10 +5592,14 @@
+         paintSiblingsRecursive(pdev, children, children.size() - 1, rgn, offset, flags & ~DrawAsRoot
+                                 , sharedPainter, backingStore);
+     }
++
++    if (tditrace) tditrace("@T-QWidgetPrivate::drawWidget()");
+ }
+ 
+ void QWidgetPrivate::sendPaintEvent(const QRegion &toBePainted)
+ {
++    if (tditrace) tditrace("@T+QWidgetPrivate::sendPaintEvent()");
++
+     Q_Q(QWidget);
+     QPaintEvent e(toBePainted);
+     QCoreApplication::sendSpontaneousEvent(q, &e);
+@@ -5600,11 +5608,15 @@
+     if (renderToTexture)
+         resolveSamples();
+ #endif // QT_NO_OPENGL
++
++    if (tditrace) tditrace("@T-QWidgetPrivate::sendPaintEvent()");
+ }
+ 
+ void QWidgetPrivate::render(QPaintDevice *target, const QPoint &targetOffset,
+                             const QRegion &sourceRegion, QWidget::RenderFlags renderFlags)
+ {
++    if (tditrace) tditrace("@T+QWidgetPrivate::render()");
++
+     if (!target) {
+         qWarning("QWidget::render: null pointer to paint device");
+         return;
+@@ -5676,6 +5688,8 @@
+     // Restore shared painter.
+     if (oldSharedPainter)
+         setSharedPainter(oldSharedPainter);
++
++    if (tditrace) tditrace("@T-QWidgetPrivate::render()");
+ }
+ 
+ void QWidgetPrivate::paintSiblingsRecursive(QPaintDevice *pdev, const QObjectList& siblings, int index, const QRegion &rgn,
+@@ -8616,6 +8630,8 @@
+ 
+ bool QWidget::event(QEvent *event)
+ {
++    if (tditrace) tditrace("@T+QWidget::event()");
++
+     Q_D(QWidget);
+ 
+     // ignore mouse and key events when disabled
+@@ -9080,8 +9096,11 @@
+     }
+ #endif
+     default:
++        if (tditrace) tditrace("@T-QWidget::event()");
+         return QObject::event(event);
+     }
++
++    if (tditrace) tditrace("@T-QWidget::event()");
+     return true;
+ }
+ 
+@@ -10841,9 +10860,12 @@
+ */
+ void QWidget::update(const QRegion &rgn)
+ {
++
+     if (!isVisible() || !updatesEnabled())
+         return;
+ 
++    if (tditrace) tditrace("@T+QWidget::update()");
++
+     QRegion r = rgn & QWidget::rect();
+ 
+     if (r.isEmpty())
+@@ -10851,6 +10873,7 @@
+ 
+     if (testAttribute(Qt::WA_WState_InPaintEvent)) {
+         QApplication::postEvent(this, new QUpdateLaterEvent(r));
++        if (tditrace) tditrace("@T-QWidget::update()");
+         return;
+     }
+ 
+@@ -10861,6 +10884,8 @@
+     } else {
+         d_func()->repaint_sys(r);
+     }
++
++    if (tditrace) tditrace("@T-QWidget::update()");
+ }
+ 
+ 

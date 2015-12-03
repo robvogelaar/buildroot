@@ -1,0 +1,5 @@
+config BR2_PACKAGE_QTPWEBKIT
+	bool "qtpwebkit"
+	select BR2_PACKAGE_QTPBASE
+	help
+	  Qtpwebkit

@@ -1,0 +1,9 @@
+qtpbase-0002-mkspecs-files.patch
+qtpbase-0003-uclibc-no-lfs.patch
+qtpbase-0008-eglfs-rpi-workaround.patch
+qtpbase-0009-arm-qdrawhelper.patch
+qtpbase-0010-rpi-depth.patch
+qtpbase-0011-broadcom-97425-dawn-eglfshook.patch
+qtpbase-0013-suppress-plugin-setparent-warning.patch
+qtpbase-0015-rpi-hw-cursor.patch
+#qt541base-instrument.patch
