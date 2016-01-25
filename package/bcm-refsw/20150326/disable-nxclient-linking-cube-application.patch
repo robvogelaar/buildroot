@@ -6,7 +6,7 @@
  
 +# Override value of USE_NXCLIENT based on environment setting
 +ifneq ($(RDK_USE_NXCLIENT),y)
-+USE_NXCLIENT ?= 0
++USE_NXCLIENT = 0
 +endif
 +
  # For linux builds, link to the correct libraries
@@ -19,9 +19,9 @@
  endif
  
 +ifeq ($(RDK_USE_NXCLIENT),y)
- USE_NXCLIENT ?= 1
+ USE_NXCLIENT = 1
 +else
-+USE_NXCLIENT ?= 0
++USE_NXCLIENT = 0
 +endif
  
  ifeq ($(SINGLE),0)
