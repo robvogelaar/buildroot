@@ -1101,4 +1101,9 @@ menu "Stubs and Reference implementations"
 source "package/stubs/Config.in"
 endmenu
 
+menu "rev"
+source "package/gles2apps/Config.in"
+source "package/tditracer/Config.in"
+endmenu
+
 endmenu
