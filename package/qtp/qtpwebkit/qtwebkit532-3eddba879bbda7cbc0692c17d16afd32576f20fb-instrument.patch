@@ -1,1 +1,1264 @@
-Common subdirectories: a/Source and b/Source
+diff -Naur a/Source/WebCore/dom/Document.cpp b/Source/WebCore/dom/Document.cpp
+--- a/Source/WebCore/dom/Document.cpp	2015-06-14 14:43:02.987820215 -0700
++++ b/Source/WebCore/dom/Document.cpp	2016-02-19 09:21:01.616226654 -0800
+@@ -167,6 +167,9 @@
+ #include <wtf/PassRefPtr.h>
+ #include <wtf/text/StringBuffer.h>
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ #if USE(ACCELERATED_COMPOSITING)
+ #include "RenderLayerCompositor.h"
+ #endif
+@@ -1769,6 +1772,8 @@
+ 
+     InspectorInstrumentationCookie cookie = InspectorInstrumentation::willRecalculateStyle(this);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+Document::recalcStyle()");
++
+     if (m_elemSheet && m_elemSheet->contents()->usesRemUnits())
+         m_styleSheetCollection->setUsesRemUnit(true);
+ 
+@@ -1839,6 +1844,8 @@
+ 
+     InspectorInstrumentation::didRecalculateStyle(cookie);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-Document::recalcStyle()");
++
+     // As a result of the style recalculation, the currently hovered element might have been
+     // detached (for example, by setting display:none in the :hover style), schedule another mouseMove event
+     // to check if any other elements ended up under the mouse pointer due to re-layout.
+diff -Naur a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp b/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp
+--- a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp	2015-06-14 14:43:02.911820213 -0700
++++ b/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp	2016-02-19 10:26:29.559375296 -0800
+@@ -58,6 +58,9 @@
+ #include "TextMetrics.h"
+ #include "TextRun.h"
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ #if USE(ACCELERATED_COMPOSITING)
+ #include "RenderLayer.h"
+ #endif
+@@ -1039,6 +1042,8 @@
+         return;
+     FloatRect rect(x, y, width, height);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CanvasRenderingContext2D::clearRect() %gx%g+%g+%g", rect.width(), rect.height(), rect.x(), rect.y());
++
+     bool saved = false;
+     if (shouldDrawShadows()) {
+         context->save();
+@@ -1063,6 +1068,8 @@
+     if (saved)
+         context->restore();
+     didDraw(rect);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-CanvasRenderingContext2D::clearRect()");
+ }
+ 
+ void CanvasRenderingContext2D::fillRect(float x, float y, float width, float height)
+@@ -1085,6 +1092,8 @@
+ 
+     FloatRect rect(x, y, width, height);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CanvasRenderingContext2D::fillRect() %gx%g+%g+%g", rect.width(), rect.height(), rect.x(), rect.y());
++
+     if (rectContainsCanvas(rect)) {
+         c->fillRect(rect);
+         didDrawEntireCanvas();
+@@ -1099,6 +1108,8 @@
+         c->fillRect(rect);
+         didDraw(rect);
+     }
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-CanvasRenderingContext2D::fillRect()");
+ }
+ 
+ void CanvasRenderingContext2D::strokeRect(float x, float y, float width, float height)
+@@ -2083,12 +2094,43 @@
+ 
+ void CanvasRenderingContext2D::fillText(const String& text, float x, float y)
+ {
++    char t[128];
++    int i;
++    if (text.is8Bit()) {
++        i = text.length() < 127 ? text.length() : 127;
++        strncpy(t, (char*)text.characters8(), i);
++    } else {
++        char* p = (char*)text.characters16();
++        for (i = 0 ; i < (text.length() < 127 ? text.length() : 127) ; i++) {
++            t[i] = p[0+i*2];
++        }
++    }
++    t[i]=0;
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CanvasRenderingContext2D::fillText() \"%s\"", t);
++
+     drawTextInternal(text, x, y, true);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-CanvasRenderingContext2D::fillText()");
+ }
+ 
+ void CanvasRenderingContext2D::fillText(const String& text, float x, float y, float maxWidth)
+ {
++    if (text.is8Bit()) {
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CanvasRenderingContext2D::fillText() \"%s\"", (char*)text.characters8());
++    } else {
++        char t[128];
++        int i;
++        char* p = (char*)text.characters16();
++        for (i = 0 ; i < (text.length() < 127 ? text.length() : 127) ; i++) {
++            t[i] = p[0+i*2];
++        }
++        t[i]=0;
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CanvasRenderingContext2D::fillText() \"%s\"", t);
++    }
++
+     drawTextInternal(text, x, y, true, maxWidth, true);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-CanvasRenderingContext2D::fillText()");
+ }
+ 
+ void CanvasRenderingContext2D::strokeText(const String& text, float x, float y)
+diff -Naur a/Source/WebCore/page/Console.cpp b/Source/WebCore/page/Console.cpp
+--- a/Source/WebCore/page/Console.cpp	2015-06-14 14:43:02.987820215 -0700
++++ b/Source/WebCore/page/Console.cpp	2016-02-19 12:32:58.191139800 -0800
+@@ -156,9 +156,25 @@
+     internalAddMessage(page(), ClearMessageType, LogMessageLevel, state, arguments, true);
+ }
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ void Console::trace(ScriptState* state, PassRefPtr<ScriptArguments> arguments)
+ {
+-    internalAddMessage(page(), TraceMessageType, LogMessageLevel, state, arguments, true, true);
++    //internalAddMessage(page(), TraceMessageType, LogMessageLevel, state, arguments, true, true);
++
++    if (tditrace_ex != NULL) {
++        for (size_t i = 0; i < arguments->argumentCount(); ++i) {
++            String argAsString = arguments->argumentAt(i).toString(arguments->globalState());
++            tditrace_ex(TDIMASK, "@S+%s", argAsString.utf8().data());
++        }
++       // size_t stackSize = ScriptCallStack::maxCallStackSizeToCapture;
++       // RefPtr<ScriptCallStack> callStack(createScriptCallStack(state, stackSize));
++       // for (size_t i = 0; i < callStack->size(); ++i) {
++       //     String functionName = String(callStack->at(i).functionName());
++       //     fprintf(stderr, "\t%s\n", functionName.utf8().data());
++       // }
++    }
+ }
+ 
+ void Console::assertCondition(ScriptState* state, PassRefPtr<ScriptArguments> arguments, bool condition)
+diff -Naur a/Source/WebCore/page/DOMTimer.cpp b/Source/WebCore/page/DOMTimer.cpp
+--- a/Source/WebCore/page/DOMTimer.cpp	2015-06-14 14:43:02.987820215 -0700
++++ b/Source/WebCore/page/DOMTimer.cpp	2016-02-19 13:19:31.386009400 -0800
+@@ -35,6 +35,9 @@
+ #include <wtf/HashSet.h>
+ #include <wtf/StdLibExtras.h>
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ using namespace std;
+ 
+ namespace WebCore {
+@@ -87,6 +90,8 @@
+     timer->suspendIfNeeded();
+     InspectorInstrumentation::didInstallTimer(context, timer->m_timeoutId, timeout, singleShot);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+DOMTimer:: install,%dms,%d", timeout, timer->m_timeoutId);
++
+     return timer->m_timeoutId;
+ }
+ 
+@@ -100,6 +105,8 @@
+ 
+     InspectorInstrumentation::didRemoveTimer(context, timeoutId);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+DOMTimer:: removeById,%d", timeoutId);
++
+     delete context->findTimeout(timeoutId);
+ }
+ 
+@@ -114,6 +121,8 @@
+ 
+     InspectorInstrumentationCookie cookie = InspectorInstrumentation::willFireTimer(context, m_timeoutId);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+DOMTimer:: fired,%d", m_timeoutId);
++
+     // Simple case for non-one-shot timers.
+     if (isActive()) {
+         double minimumInterval = context->minimumTimerInterval();
+diff -Naur a/Source/WebCore/page/FrameView.cpp b/Source/WebCore/page/FrameView.cpp
+--- a/Source/WebCore/page/FrameView.cpp	2015-06-14 14:43:02.999820215 -0700
++++ b/Source/WebCore/page/FrameView.cpp	2016-02-19 09:17:14.150018166 -0800
+@@ -77,6 +77,9 @@
+ #include "TextResourceDecoder.h"
+ #include "TextStream.h"
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ #include <wtf/CurrentTime.h>
+ #include <wtf/TemporaryChange.h>
+ 
+@@ -3596,9 +3599,12 @@
+     if (needsLayout())
+         return;
+ 
+-    if (!p->paintingDisabled())
++    if (!p->paintingDisabled()) {
+         InspectorInstrumentation::willPaint(renderView);
+ 
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+FrameView::paintContents()");
++    }
++
+     bool isTopLevelPainter = !sCurrentPaintTimeStamp;
+     if (isTopLevelPainter)
+         sCurrentPaintTimeStamp = currentTime();
+@@ -3663,6 +3669,9 @@
+ 
+     if (!p->paintingDisabled()) {
+         InspectorInstrumentation::didPaint(renderView, p, rect);
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-FrameView::paintContents()");
++
+         // FIXME: should probably not fire milestones for snapshot painting. https://bugs.webkit.org/show_bug.cgi?id=117623
+         firePaintRelatedMilestones();
+     }
+diff -Naur a/Source/WebCore/platform/graphics/GraphicsContext.cpp b/Source/WebCore/platform/graphics/GraphicsContext.cpp
+--- a/Source/WebCore/platform/graphics/GraphicsContext.cpp	2015-06-14 14:43:02.959820214 -0700
++++ b/Source/WebCore/platform/graphics/GraphicsContext.cpp	2016-02-19 12:41:02.656953700 -0800
+@@ -36,6 +36,9 @@
+ 
+ #include "stdio.h"
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ using namespace std;
+ 
+ namespace WebCore {
+@@ -414,7 +417,26 @@
+     if (paintingDisabled())
+         return;
+ 
++    if (tditrace_ex != NULL) {
++        char text[128];
++        int i;
++        if (run.is8Bit()) {
++            i = run.length() < 127 ? run.length() : 127;
++            strncpy(text, (char*)run.characters8(), i);
++        } else {
++            char* p = (char*)run.characters16();
++            for (i = 0 ; i < (run.length() < 127 ? run.length() : 127) ; i++) {
++                text[i] = p[0+i*2];
++            }
++        }
++        text[i]=0;
++        tditrace_ex(TDIMASK, "@S+GraphicsContext::drawText() \"%s\"", text);
++        tditrace_ex(TDIMASK, "@T+GraphicsContext::drawText() \"%s\"", text);
++    }
++
+     font.drawText(this, run, point, from, to);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-GraphicsContext::drawText()");
+ }
+ #endif
+ 
+@@ -504,6 +526,8 @@
+ {    if (paintingDisabled() || !image)
+         return;
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+GraphicsContext::drawImage() %dx%d+%d+%d", (int)dest.width(), (int)dest.height(), (int)dest.x(), (int)dest.y());
++
+     InterpolationQuality previousInterpolationQuality = InterpolationDefault;
+ 
+     if (useLowQualityScale) {
+@@ -516,6 +540,8 @@
+ 
+     if (useLowQualityScale)
+         setImageInterpolationQuality(previousInterpolationQuality);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-GraphicsContext::drawImage()");
+ }
+ 
+ void GraphicsContext::drawTiledImage(Image* image, ColorSpace styleColorSpace, const IntRect& destRect, const IntPoint& srcPoint, const IntSize& tileSize, CompositeOperator op, bool useLowQualityScale, BlendMode blendMode)
+diff -Naur a/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp b/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp
+--- a/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp	2015-06-14 14:43:02.967820214 -0700
++++ b/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp	2016-02-19 10:46:42.617109998 -0800
+@@ -38,6 +38,9 @@
+ #include <qpa/qplatformpixmap.h>
+ #include <wtf/text/CString.h>
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<16|1<<0)
++
+ #if QT_VERSION >= 0x050100
+ #include <QOffscreenSurface>
+ #else
+@@ -234,10 +237,14 @@
+ #if USE(ACCELERATED_COMPOSITING)
+ void GraphicsContext3DPrivate::paintToTextureMapper(TextureMapper* textureMapper, const FloatRect& targetRect, const TransformationMatrix& matrix, float opacity)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+GraphicsContext3DPrivate::paintToTextureMapper()");
++
+     m_context->markLayerComposited();
++
+     blitMultisampleFramebufferAndRestoreContext();
+ 
+     if (textureMapper->accelerationMode() == TextureMapper::OpenGLMode) {
++
+         TextureMapperGL* texmapGL = static_cast<TextureMapperGL*>(textureMapper);
+ #if USE(GRAPHICS_SURFACE)
+         ASSERT(m_graphicsSurface);
+@@ -261,6 +268,8 @@
+         IntSize textureSize(m_context->m_currentWidth, m_context->m_currentHeight);
+         texmapGL->drawTexture(m_context->m_texture, flags, textureSize, targetRect, matrix, opacity);
+ #endif
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-GraphicsContext3DPrivate::paintToTextureMapper()");
+         return;
+     }
+ 
+@@ -306,6 +315,8 @@
+ 
+     painter->drawImage(targetRect, offscreenImage);
+     painter->restore();
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-GraphicsContext3DPrivate::paintToTextureMapper()");
+ }
+ #endif // USE(ACCELERATED_COMPOSITING)
+ 
+@@ -351,6 +362,8 @@
+ 
+ void GraphicsContext3DPrivate::blitMultisampleFramebufferAndRestoreContext() const
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+GraphicsContext3DPrivate::blitMultisampleFramebufferAndRestoreContext()");
++
+     const QOpenGLContext* currentContext = QOpenGLContext::currentContext();
+     QSurface* currentSurface = 0;
+     if (currentContext && currentContext != m_platformContext) {
+@@ -367,6 +380,8 @@
+ 
+     if (currentContext && currentContext != m_platformContext)
+         const_cast<QOpenGLContext*>(currentContext)->makeCurrent(currentSurface);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-GraphicsContext3DPrivate::blitMultisampleFramebufferAndRestoreContext()");
+ }
+ 
+ bool GraphicsContext3DPrivate::makeCurrentIfNeeded() const
+diff -Naur a/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp b/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp
+--- a/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp	2015-06-14 14:43:02.963820214 -0700
++++ b/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp	2016-02-19 13:32:53.879802300 -0800
+@@ -73,6 +73,9 @@
+ #include <QVector>
+ #include <wtf/MathExtras.h>
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ #if OS(WINDOWS)
+ QT_BEGIN_NAMESPACE
+ Q_GUI_EXPORT QPixmap qt_pixmapFromWinHBITMAP(HBITMAP, int hbitmapFormat = 0);
+@@ -829,8 +832,12 @@
+     if (!repeatX || !repeatY)
+         p->setClipRect(clip);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+GraphicsContext::fillRect() %dx%d+%d+%d,%s", (int)targetRect.width(), (int)targetRect.height(), (int)targetRect.x(), (int)targetRect.y(), "brush");
++
+     p->fillRect(targetRect, brush);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-GraphicsContext::fillRect()");
++
+     if (!oldClip.isEmpty())
+         p->setClipRegion(oldClip);
+     else if (!repeatX || !repeatY)
+@@ -868,7 +875,13 @@
+                 shadow.endShadowLayer(this);
+             }
+         }
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+GraphicsContext::fillRect() %dx%d+%d+%d,%s", (int)normalizedRect.width(), (int)normalizedRect.height(), (int)normalizedRect.x(), (int)normalizedRect.y(), "brush");
++
+         p->fillRect(normalizedRect, brush);
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-GraphicsContext::fillRect()");
++
+     } else {
+         if (hasShadow()) {
+             if (mustUseShadowBlur()) {
+@@ -889,11 +902,20 @@
+                 // faster without using the shadow layer at all.
+                 QColor shadowColor = m_state.shadowColor;
+                 shadowColor.setAlphaF(shadowColor.alphaF() * p->brush().color().alphaF());
++
++                if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+GraphicsContext::fillRect() %dx%d+%d+%d,%s", (int)normalizedRect.width(), (int)normalizedRect.height(), (int)normalizedRect.x(), (int)normalizedRect.y(), "color");
++
+                 p->fillRect(normalizedRect.translated(QPointF(m_state.shadowOffset.width(), m_state.shadowOffset.height())), shadowColor);
++
++                if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-GraphicsContext::fillRect()");
+             }
+         }
+ 
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+GraphicsContext::fillRect() %dx%d+%d+%d,%s", (int)normalizedRect.width(), (int)normalizedRect.height(), (int)normalizedRect.x(), (int)normalizedRect.y(), "brush");
++
+         p->fillRect(normalizedRect, p->brush());
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-GraphicsContext::fillRect()");
+     }
+ }
+ 
+@@ -903,6 +925,10 @@
+     if (paintingDisabled() || !color.isValid())
+         return;
+ 
++    QColor qcolor = QColor(color);
++    int r,g,b,a;
++    qcolor.getRgb(&r, &g, &b, &a);
++
+     QRectF platformRect(rect);
+     QPainter* p = m_data->p();
+     if (hasShadow()) {
+@@ -912,10 +938,20 @@
+         } else {
+             QColor shadowColor = m_state.shadowColor;
+             shadowColor.setAlphaF(shadowColor.alphaF() * p->brush().color().alphaF());
++
++            if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+GraphicsContext::fillRect() %dx%d+%d+%d,%s", (int)platformRect.width(), (int)platformRect.height(), (int)platformRect.x(), (int)platformRect.y(), "color");
++
+             p->fillRect(platformRect.translated(QPointF(m_state.shadowOffset.width(), m_state.shadowOffset.height())), shadowColor);
++
++            if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-GraphicsContext::fillRect()");
+         }
+     }
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+GraphicsContext::fillRect() %dx%d+%d+%d,%s", (int)platformRect.width(), (int)platformRect.height(), (int)platformRect.x(), (int)platformRect.y(), "color");
++
+     p->fillRect(platformRect, QColor(color));
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-GraphicsContext::fillRect()");
+ }
+ 
+ void GraphicsContext::fillRoundedRect(const IntRect& rect, const IntSize& topLeft, const IntSize& topRight, const IntSize& bottomLeft, const IntSize& bottomRight, const Color& color, ColorSpace colorSpace)
+@@ -923,6 +959,10 @@
+     if (paintingDisabled() || !color.isValid())
+         return;
+ 
++    QColor qcolor = QColor(color);
++    int r,g,b,a;
++    qcolor.getRgb(&r, &g, &b, &a);
++
+     Path path;
+     path.addRoundedRect(rect, topLeft, topRight, bottomLeft, bottomRight);
+     QPainter* p = m_data->p();
+@@ -945,6 +985,10 @@
+     if (paintingDisabled() || !color.isValid())
+         return;
+ 
++    QColor qcolor = QColor(color);
++    int r,g,b,a;
++    qcolor.getRgb(&r, &g, &b, &a);
++
+     Path path;
+     path.addRect(rect);
+     if (!roundedHoleRect.radii().isZero())
+@@ -1340,11 +1384,17 @@
+     if (paintingDisabled())
+         return;
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+GraphicsContext::clearRect() %dx%d+%d+%d", (int)rect.width(), (int)rect.height(), (int)rect.x(), (int)rect.y());
++
+     QPainter* p = m_data->p();
+     QPainter::CompositionMode currentCompositionMode = p->compositionMode();
+     p->setCompositionMode(QPainter::CompositionMode_Source);
++
+     p->fillRect(rect, Qt::transparent);
++
+     p->setCompositionMode(currentCompositionMode);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-GraphicsContext::clearRect()");
+ }
+ 
+ void GraphicsContext::strokeRect(const FloatRect& rect, float lineWidth)
+diff -Naur a/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp b/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp
+--- a/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp	2015-06-14 14:43:02.967820214 -0700
++++ b/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp	2016-02-19 11:10:25.342390400 -0800
+@@ -278,12 +278,17 @@
+     painter->restore();
+ }
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ void ImageBufferDataPrivateAccelerated::paintToTextureMapper(TextureMapper* textureMapper, const FloatRect& targetRect, const TransformationMatrix& matrix, float opacity)
+ {
+     if (textureMapper->accelerationMode() != TextureMapper::OpenGLMode) {
+         return;
+     }
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+ImageBufferDataPrivateAccelerated::paintToTextureMapper()");
++
+     QOpenGLContext *previousContext = QOpenGLContext::currentContext();
+     GLSharedContext::makeCurrent();
+     commitChanges();
+@@ -291,6 +296,7 @@
+ 
+     static_cast<TextureMapperGL*>(textureMapper)->drawTexture(m_fbo->texture(), TextureMapperGL::ShouldFlipTexture | TextureMapperGL::ShouldBlend, m_fbo->size(), targetRect, matrix, opacity);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-ImageBufferDataPrivateAccelerated::paintToTextureMapper()");
+ }
+ 
+ #endif // ACCELERATED_2D_CANVAS
+diff -Naur a/Source/WebCore/platform/graphics/qt/ImageQt.cpp b/Source/WebCore/platform/graphics/qt/ImageQt.cpp
+--- a/Source/WebCore/platform/graphics/qt/ImageQt.cpp	2015-06-14 14:43:02.959820214 -0700
++++ b/Source/WebCore/platform/graphics/qt/ImageQt.cpp	2016-02-19 10:34:44.555404803 -0800
+@@ -53,6 +53,9 @@
+ 
+ #include <math.h>
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ #if OS(WINDOWS)
+ QT_BEGIN_NAMESPACE
+ Q_GUI_EXPORT QPixmap qt_pixmapFromWinHBITMAP(HBITMAP, int hbitmapFormat = 0);
+@@ -152,6 +155,8 @@
+     if (!dr.width() || !dr.height() || !tr.width() || !tr.height())
+         return;
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+Image::drawPattern()");
++
+     QPixmap pixmap = *framePixmap;
+     if (tr.x() || tr.y() || tr.width() != pixmap.width() || tr.height() != pixmap.height())
+         pixmap = pixmap.copy(tr);
+@@ -190,10 +195,16 @@
+ 
+     QBrush b(pixmap);
+     b.setTransform(transform);
++    if (tditrace_ex !=NULL) tditrace_ex(TDIMASK, "@T+QPainter::fillRect() %dx%d+%d+%d,%s", (int)dr.width(), (int)dr.height(), (int)dr.x(), (int)dr.y(), "pixmap");
++
+     p->fillRect(dr, b);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-QPainter::fillRect()");
++
+     ctxt->setCompositeOperation(previousOperator);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-Image::drawPattern()");
++
+     if (imageObserver())
+         imageObserver()->didDraw(this);
+ }
+diff -Naur a/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp b/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp
+--- a/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp	2015-06-14 14:43:02.971820214 -0700
++++ b/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp	2016-02-19 11:13:11.993699043 -0800
+@@ -524,11 +524,17 @@
+         m_private->copyFromTexture(texture, sourceRect);
+ }
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
+ 
+ void GraphicsSurface::platformPaintToTextureMapper(TextureMapper* textureMapper, const FloatRect& targetRect, const TransformationMatrix& transform, float opacity)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+GraphicsSurface::platformPaintToTextureMapper()");
++
+     TextureMapperGL* texMapGL = static_cast<TextureMapperGL*>(textureMapper);
+     texMapGL->drawTexture(platformGetTextureID(), TextureMapperGL::ShouldBlend, m_private->size(), targetRect, transform, opacity);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-GraphicsSurface::platformPaintToTextureMapper()");
+ }
+ 
+ uint32_t GraphicsSurface::platformFrontBuffer() const
+diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp
+--- a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp	2015-06-14 14:43:02.955820214 -0700
++++ b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp	2016-02-19 10:21:55.267507330 -0800
+@@ -82,14 +82,21 @@
+         sortByZOrder(m_children);
+ }
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ void TextureMapperLayer::paint()
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+TextureMapperLayer::paint()");
++
+     computeTransformsRecursive();
+ 
+     TextureMapperPaintOptions options;
+     options.textureMapper = m_textureMapper;
+     options.textureMapper->bindSurface(0);
+     paintRecursive(options);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::paint()");
+ }
+ 
+ static Color blendWithOpacity(const Color& color, float opacity)
+@@ -117,6 +124,8 @@
+     if (!m_state.visible || !m_state.contentsVisible)
+         return;
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+TextureMapperLayer::paintSelf()");
++
+     // We apply the following transform to compensate for painting into a surface, and then apply the offset so that the painting fits in the target rect.
+     TransformationMatrix transform;
+     transform.translate(options.offset.width(), options.offset.height());
+@@ -127,6 +136,9 @@
+         options.textureMapper->drawSolidColor(m_state.contentsRect, transform, blendWithOpacity(m_state.solidColor, options.opacity));
+         if (m_state.showDebugBorders)
+             options.textureMapper->drawBorder(m_state.debugBorderColor, m_state.debugBorderWidth, layerRect(), transform);
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::paintSelf()");
++
+         return;
+     }
+ 
+@@ -144,9 +156,12 @@
+             m_backingStore->drawRepaintCounter(options.textureMapper, m_state.repaintCount, m_state.debugBorderColor, targetRect, transform);
+     }
+ 
+-    if (!m_contentsLayer)
+-        return;
++    if (!m_contentsLayer) {
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::paintSelf()");
+ 
++        return;
++    }
+     if (!m_state.contentsTileSize.isEmpty()) {
+         computePatternTransformIfNeeded();
+         options.textureMapper->setWrapMode(TextureMapper::RepeatWrap);
+@@ -157,6 +172,8 @@
+     m_contentsLayer->paintToTextureMapper(options.textureMapper, m_state.contentsRect, transform, options.opacity);
+     if (m_state.showDebugBorders)
+         m_contentsLayer->drawBorder(options.textureMapper, m_state.debugBorderColor, m_state.debugBorderWidth, m_state.contentsRect, transform);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::paintSelf()");
+ }
+ 
+ int TextureMapperLayer::compareGraphicsLayersZValue(const void* a, const void* b)
+@@ -173,10 +190,16 @@
+ 
+ void TextureMapperLayer::paintSelfAndChildren(const TextureMapperPaintOptions& options)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+TextureMapperLayer::paintSelfAndChildren() %d", m_children.size());
++
+     paintSelf(options);
+ 
+-    if (m_children.isEmpty())
++    if (m_children.isEmpty()) {
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::paintSelfAndChildren()");
++
+         return;
++    }
+ 
+     bool shouldClip = m_state.masksToBounds && !m_state.preserves3D;
+     if (shouldClip) {
+@@ -192,10 +215,14 @@
+ 
+     if (shouldClip)
+         options.textureMapper->endClip();
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::paintSelfAndChildren()");
+ }
+ 
+ bool TextureMapperLayer::shouldBlend() const
+ {
++    return false;
++
+     if (m_state.preserves3D)
+         return false;
+ 
+@@ -220,6 +247,8 @@
+ 
+ void TextureMapperLayer::paintSelfAndChildrenWithReplica(const TextureMapperPaintOptions& options)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+TextureMapperLayer::paintSelfAndChildrenWithReplica()");
++
+     if (m_state.replicaLayer) {
+         TextureMapperPaintOptions replicaOptions(options);
+         replicaOptions.transform
+@@ -229,6 +258,8 @@
+     }
+ 
+     paintSelfAndChildren(options);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::paintSelfAndChildrenWithReplica()");
+ }
+ 
+ void TextureMapperLayer::setAnimatedTransform(const TransformationMatrix& matrix)
+@@ -330,8 +361,20 @@
+     Region overlapRegion;
+     Region nonOverlapRegion;
+     computeOverlapRegions(overlapRegion, nonOverlapRegion, ResolveSelfOverlapAlways);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+TextureMapperLayer::paintUsingOverlapRegions()_%dx%d+%d+%d_%d %d %d",
++       options.textureMapper->clipBounds().width(), options.textureMapper->clipBounds().height(),
++       options.textureMapper->clipBounds().x(), options.textureMapper->clipBounds().y(), options.offset,
++       nonOverlapRegion.rects().size(), overlapRegion.rects().size());
++
+     if (overlapRegion.isEmpty()) {
+         paintSelfAndChildrenWithReplica(options);
++
++       if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::paintUsingOverlapRegions()_%dx%d+%d+%d_%d %d %d",
++          options.textureMapper->clipBounds().width(), options.textureMapper->clipBounds().height(),
++          options.textureMapper->clipBounds().x(), options.textureMapper->clipBounds().y(), options.offset,
++          nonOverlapRegion.rects().size(), overlapRegion.rects().size());
++
+         return;
+     }
+ 
+@@ -347,10 +390,17 @@
+ 
+     for (size_t i = 0; i < rects.size(); ++i) {
+         IntRect rect = rects[i];
+-        if (!rect.intersects(options.textureMapper->clipBounds()))
++        if (!rect.intersects(options.textureMapper->clipBounds())) {
++
++            if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+overlaprect %d %d %d skip", i, rect.x(), rect.y());
++
+             continue;
++        }
+ 
+         options.textureMapper->beginClip(TransformationMatrix(), rects[i]);
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+overlaprect %d %d %d paintSelfAndChildrenWithReplica", i, rect.x(), rect.y());
++
+         paintSelfAndChildrenWithReplica(options);
+         options.textureMapper->endClip();
+     }
+@@ -367,17 +417,31 @@
+     adjustedClipBounds.move(-options.offset);
+     for (size_t i = 0; i < rects.size(); ++i) {
+         IntRect rect = rects[i];
++
+         for (int x = rect.x(); x < rect.maxX(); x += maxTextureSize.width()) {
+             for (int y = rect.y(); y < rect.maxY(); y += maxTextureSize.height()) {
++
+                 IntRect tileRect(IntPoint(x, y), maxTextureSize);
+                 tileRect.intersect(rect);
+-                if (!tileRect.intersects(adjustedClipBounds))
+-                    continue;
++                if (!tileRect.intersects(adjustedClipBounds)) {
++
++                   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+overlaprect %d %d %d skip", i, rect.x(), rect.y());
++
++                   continue;
++                }
++
++                if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+overlaprect %d %d %d paintWithIntermediateSurface", i, rect.x(), rect.y());
+ 
+                 paintWithIntermediateSurface(options, tileRect);
+             }
+         }
+     }
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::paintUsingOverlapRegions()_%dx%d+%d+%d_%d %d %d",
++       options.textureMapper->clipBounds().width(), options.textureMapper->clipBounds().height(),
++       options.textureMapper->clipBounds().x(), options.textureMapper->clipBounds().y(), options.offset,
++       nonOverlapRegion.rects().size(), overlapRegion.rects().size());
++
+ }
+ 
+ void TextureMapperLayer::applyMask(const TextureMapperPaintOptions& options)
+@@ -414,6 +478,8 @@
+ 
+ void TextureMapperLayer::paintWithIntermediateSurface(const TextureMapperPaintOptions& options, const IntRect& rect)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+TextureMapperLayer::paintWithIntermediateSurface() %dx%d+%d+%d", rect.width(), rect.height(), rect.x(), rect.y());
++
+     RefPtr<BitmapTexture> replicaSurface;
+     RefPtr<BitmapTexture> mainSurface;
+     TextureMapperPaintOptions paintOptions(options);
+@@ -441,22 +507,34 @@
+     }
+ 
+     commitSurface(options, mainSurface, rect, options.opacity);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::paintWithIntermediateSurface()");
+ }
+ 
+ void TextureMapperLayer::paintRecursive(const TextureMapperPaintOptions& options)
+ {
+-    if (!isVisible())
+-        return;
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+TextureMapperLayer::paintRecursive()");
+ 
++    if (!isVisible()) {
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::paintRecursive()");
++
++        return;
++    }
+     TextureMapperPaintOptions paintOptions(options);
+     paintOptions.opacity *= m_currentOpacity;
+ 
+     if (!shouldBlend()) {
+         paintSelfAndChildrenWithReplica(paintOptions);
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::paintRecursive()");
++
+         return;
+     }
+ 
+     paintUsingOverlapRegions(paintOptions);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::paintRecursive()");
+ }
+ 
+ TextureMapperLayer::~TextureMapperLayer()
+@@ -686,6 +764,8 @@
+ 
+ void TextureMapperLayer::syncAnimations()
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+TextureMapperLayer::syncAnimations()");
++
+     m_animations.apply(this);
+     if (!m_animations.hasActiveAnimationsOfType(AnimatedPropertyWebkitTransform))
+         m_currentTransform.setLocalTransform(m_state.transform);
+@@ -696,6 +776,8 @@
+     if (!m_animations.hasActiveAnimationsOfType(AnimatedPropertyWebkitFilter))
+         m_currentFilters = m_state.filters;
+ #endif
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::syncAnimations()");
+ }
+ 
+ bool TextureMapperLayer::isAncestorFixedToViewport() const
+diff -Naur a/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp b/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp
+--- a/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp	2015-06-14 14:43:02.971820214 -0700
++++ b/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp	2016-02-19 09:23:46.879520807 -0800
+@@ -42,6 +42,9 @@
+ #include "PlatformInstrumentation.h"
+ #include <wtf/PassOwnPtr.h>
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ extern "C" {
+ #if USE(ICCJPEG)
+ #include "iccjpeg.h"
+@@ -626,7 +629,13 @@
+     ImageFrame& frame = m_frameBufferCache[0];
+     if (frame.status() != ImageFrame::FrameComplete) {
+         PlatformInstrumentation::willDecodeImage("JPEG");
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+JPEGImageDecoder::frameBufferAtIndex()");
++
+         decode(false);
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-JPEGImageDecoder::frameBufferAtIndex()");
++
+         PlatformInstrumentation::didDecodeImage();
+     }
+     return &frame;
+diff -Naur a/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp b/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp
+--- a/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp	2015-06-14 14:43:02.975820214 -0700
++++ b/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp	2016-02-19 09:27:14.537877940 -0800
+@@ -50,6 +50,9 @@
+ #include "qcms.h"
+ #endif
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ #if defined(PNG_LIBPNG_VER_MAJOR) && defined(PNG_LIBPNG_VER_MINOR) && (PNG_LIBPNG_VER_MAJOR > 1 || (PNG_LIBPNG_VER_MAJOR == 1 && PNG_LIBPNG_VER_MINOR >= 4))
+ #define JMPBUF(png_ptr) png_jmpbuf(png_ptr)
+ #else
+@@ -261,7 +264,13 @@
+     ImageFrame& frame = m_frameBufferCache[0];
+     if (frame.status() != ImageFrame::FrameComplete) {
+         PlatformInstrumentation::willDecodeImage("PNG");
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+PNGImageDecoder::frameBufferAtIndex()");
++
+         decode(false);
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-PNGImageDecoder::frameBufferAtIndex()");
++
+         PlatformInstrumentation::didDecodeImage();
+     }
+     return &frame;
+diff -Naur a/Source/WebCore/rendering/RenderBlock.cpp b/Source/WebCore/rendering/RenderBlock.cpp
+--- a/Source/WebCore/rendering/RenderBlock.cpp	2015-06-14 14:43:02.931820214 -0700
++++ b/Source/WebCore/rendering/RenderBlock.cpp	2016-02-19 12:37:25.932068500 -0800
+@@ -70,6 +70,9 @@
+ #include "ShapeOutsideInfo.h"
+ #endif
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ using namespace std;
+ using namespace WTF;
+ using namespace Unicode;
+@@ -2970,6 +2973,44 @@
+  
+ void RenderBlock::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
+ {
++    if (tditrace_ex != NULL) {
++        StringBuilder name;
++        if (Element* element = node() && node()->isElementNode() ? toElement(node()) : 0) {
++            name.append(element->tagName());
++
++            if (element->hasID()) {
++                name.appendLiteral(" id=\'");
++                name.append(element->getIdAttribute());
++                name.append('\'');
++            }
++
++            if (element->hasClass()) {
++                name.appendLiteral(" class=\'");
++                for (size_t i = 0; i < element->classNames().size(); ++i) {
++                    if (i > 0)
++                        name.append(' ');
++                    name.append(element->classNames()[i]);
++                }
++                name.append('\'');
++            }
++        }
++
++        char text[256];
++        int i;
++        if (name.toString().is8Bit()) {
++            i = name.toString().length() < 255 ? name.toString().length() : 255;
++            strncpy(text, (char*)name.toString().characters8(), i);
++        } else {
++            char* p = (char*)name.toString().characters8();
++            for (i = 0 ; i < (name.toString().length() < 255 ? name.toString().length() : 255) ; i++) {
++                text[i] = p[i];
++            }
++        }
++        text[i]=0;
++        tditrace_ex(TDIMASK, "@S+RenderBlock::paint() %s,%dx%d+%d+%d,+%d+%d", text, paintInfo.rect.width(), paintInfo.rect.height(), paintInfo.rect.x(), paintInfo.rect.y(), paintOffset.x().toInt(), paintOffset.y().toInt());
++        tditrace_ex(TDIMASK, "@T+RenderBlock::paint()");
++    }
++
+     LayoutPoint adjustedPaintOffset = paintOffset + location();
+     
+     PaintPhase phase = paintInfo.phase;
+@@ -2982,8 +3023,11 @@
+         flipForWritingMode(overflowBox);
+         overflowBox.inflate(maximalOutlineSize(paintInfo.phase));
+         overflowBox.moveBy(adjustedPaintOffset);
+-        if (!overflowBox.intersects(paintInfo.rect))
++        if (!overflowBox.intersects(paintInfo.rect)) {
++
++            if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderBlock::paint()");
+             return;
++        }
+     }
+ 
+     bool pushedClip = pushContentsClip(paintInfo, adjustedPaintOffset);
+@@ -2996,6 +3040,8 @@
+     // sit above the background/border.
+     if (hasOverflowClip() && style()->visibility() == VISIBLE && (phase == PaintPhaseBlockBackground || phase == PaintPhaseChildBlockBackground) && paintInfo.shouldPaintWithinRoot(this) && !paintInfo.paintRootBackgroundOnly())
+         layer()->paintOverflowControls(paintInfo.context, roundedIntPoint(adjustedPaintOffset), paintInfo.rect);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderBlock::paint()");
+ }
+ 
+ void RenderBlock::paintColumnRules(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
+diff -Naur a/Source/WebCore/rendering/RenderBox.cpp b/Source/WebCore/rendering/RenderBox.cpp
+--- a/Source/WebCore/rendering/RenderBox.cpp	2015-06-14 14:43:02.951820214 -0700
++++ b/Source/WebCore/rendering/RenderBox.cpp	2016-02-19 12:38:23.388871400 -0800
+@@ -61,6 +61,9 @@
+ #include "RenderLayerCompositor.h"
+ #endif
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ using namespace std;
+ 
+ namespace WebCore {
+@@ -1039,6 +1042,8 @@
+ 
+ void RenderBox::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+RenderBox::paint()");
++
+     LayoutPoint adjustedPaintOffset = paintOffset + location();
+     // default implementation. Just pass paint through to the children
+     PaintInfo childInfo(paintInfo);
+@@ -1100,6 +1105,8 @@
+     if (!paintInfo.shouldPaintWithinRoot(this))
+         return;
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+RenderBox::paintBoxDecorations()");
++
+     LayoutRect paintRect = borderBoxRectInRegion(paintInfo.renderRegion);
+     paintRect.moveBy(paintOffset);
+ 
+@@ -1142,19 +1149,31 @@
+ 
+     if (bleedAvoidance == BackgroundBleedUseTransparencyLayer)
+         paintInfo.context->endTransparencyLayer();
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderBox::paintBoxDecorations()");
+ }
+ 
+ void RenderBox::paintBackground(const PaintInfo& paintInfo, const LayoutRect& paintRect, BackgroundBleedAvoidance bleedAvoidance)
+ {
+     if (isRoot()) {
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+RenderBox::paintBackground()");
++
+         paintRootBoxFillLayers(paintInfo);
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderBox::paintBackground()");
+         return;
+     }
+     if (isBody() && skipBodyBackground(this))
+         return;
+     if (backgroundIsKnownToBeObscured() && !boxShadowShouldBeAppliedToBackground(bleedAvoidance))
+         return;
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+RenderBox::paintBackground()");
++
+     paintFillLayers(paintInfo, style()->visitedDependentColor(CSSPropertyBackgroundColor), style()->backgroundLayers(), paintRect, bleedAvoidance);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderBox::paintBackground()");
+ }
+ 
+ bool RenderBox::getBackgroundPaintedExtent(LayoutRect& paintedExtent) const
+diff -Naur a/Source/WebCore/rendering/RenderImage.cpp b/Source/WebCore/rendering/RenderImage.cpp
+--- a/Source/WebCore/rendering/RenderImage.cpp	2015-06-14 14:43:02.919820213 -0700
++++ b/Source/WebCore/rendering/RenderImage.cpp	2016-02-19 12:36:35.275550100 -0800
+@@ -47,6 +47,9 @@
+ #include "SVGImage.h"
+ #include <wtf/StackStats.h>
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ using namespace std;
+ 
+ namespace WebCore {
+@@ -408,6 +411,8 @@
+ 
+ void RenderImage::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+RenderImage::paint() %dx%d+%d+%d,+%d+%d", paintInfo.rect.width(), paintInfo.rect.height(), paintInfo.rect.x(), paintInfo.rect.y(), paintOffset.x().toInt(), paintOffset.y().toInt());
++
+     RenderReplaced::paint(paintInfo, paintOffset);
+     
+     if (paintInfo.phase == PaintPhaseOutline)
+diff -Naur a/Source/WebCore/rendering/RenderLayerBacking.cpp b/Source/WebCore/rendering/RenderLayerBacking.cpp
+--- a/Source/WebCore/rendering/RenderLayerBacking.cpp	2015-06-14 14:43:02.915820213 -0700
++++ b/Source/WebCore/rendering/RenderLayerBacking.cpp	2016-02-19 12:40:03.613301900 -0800
+@@ -2011,6 +2011,9 @@
+     context.restore();
+ }
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ // Up-call from compositing layer drawing callback.
+ void RenderLayerBacking::paintContents(const GraphicsLayer* graphicsLayer, GraphicsContext& context, GraphicsLayerPaintingPhase paintingPhase, const IntRect& clip)
+ {
+@@ -2026,6 +2029,8 @@
+         || graphicsLayer == m_scrollingContentsLayer.get()) {
+         InspectorInstrumentation::willPaint(renderer());
+ 
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+RenderLayerBacking::paintContents()");
++
+         // The dirtyRect is in the coords of the painting root.
+         IntRect dirtyRect = clip;
+         if (!(paintingPhase & GraphicsLayerPaintOverflowContents))
+@@ -2034,6 +2039,8 @@
+         // We have to use the same root as for hit testing, because both methods can compute and cache clipRects.
+         paintIntoLayer(graphicsLayer, &context, dirtyRect, PaintBehaviorNormal, paintingPhase);
+ 
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayerBacking::paintContents()");
++
+         InspectorInstrumentation::didPaint(renderer(), &context, clip);
+     } else if (graphicsLayer == layerForHorizontalScrollbar()) {
+         paintScrollbar(m_owningLayer->horizontalScrollbar(), context, clip);
+@@ -2173,6 +2180,9 @@
+     ASSERT(property != CSSPropertyInvalid);
+ 
+     if (property == CSSPropertyOpacity) {
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+RenderLayerBacking::startTransition() CSSPropertyOpacity");
++
+         const Animation* opacityAnim = toStyle->transitionForProperty(CSSPropertyOpacity);
+         if (opacityAnim && !opacityAnim->isEmptyOrZeroDuration()) {
+             KeyframeValueList opacityVector(AnimatedPropertyOpacity);
+@@ -2188,6 +2198,9 @@
+     }
+ 
+     if (property == CSSPropertyWebkitTransform && m_owningLayer->hasTransform()) {
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+RenderLayerBacking::startTransition() CSSPropertyWebkitTransform");
++
+         const Animation* transformAnim = toStyle->transitionForProperty(CSSPropertyWebkitTransform);
+         if (transformAnim && !transformAnim->isEmptyOrZeroDuration()) {
+             KeyframeValueList transformVector(AnimatedPropertyWebkitTransform);
+@@ -2203,6 +2216,9 @@
+ 
+ #if ENABLE(CSS_FILTERS)
+     if (property == CSSPropertyWebkitFilter && m_owningLayer->hasFilter()) {
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+RenderLayerBacking::startTransition() CSSPropertyWebkitFilter");
++
+         const Animation* filterAnim = toStyle->transitionForProperty(CSSPropertyWebkitFilter);
+         if (filterAnim && !filterAnim->isEmptyOrZeroDuration()) {
+             KeyframeValueList filterVector(AnimatedPropertyWebkitFilter);
+@@ -2222,6 +2238,8 @@
+ 
+ void RenderLayerBacking::transitionPaused(double timeOffset, CSSPropertyID property)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+RenderLayerBacking::transitionPaused()");
++
+     AnimatedPropertyID animatedProperty = cssToGraphicsLayerProperty(property);
+     if (animatedProperty != AnimatedPropertyInvalid)
+         m_graphicsLayer->pauseAnimation(GraphicsLayer::animationNameForTransition(animatedProperty), timeOffset);
+@@ -2229,6 +2247,8 @@
+ 
+ void RenderLayerBacking::transitionFinished(CSSPropertyID property)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+RenderLayerBacking::transitionFinished()");
++
+     AnimatedPropertyID animatedProperty = cssToGraphicsLayerProperty(property);
+     if (animatedProperty != AnimatedPropertyInvalid)
+         m_graphicsLayer->removeAnimation(GraphicsLayer::animationNameForTransition(animatedProperty));
+diff -Naur a/Source/WebCore/rendering/RenderLayer.cpp b/Source/WebCore/rendering/RenderLayer.cpp
+--- a/Source/WebCore/rendering/RenderLayer.cpp	2015-06-14 14:43:02.943820214 -0700
++++ b/Source/WebCore/rendering/RenderLayer.cpp	2016-02-19 12:39:08.684123900 -0800
+@@ -126,6 +126,9 @@
+ #include "ValidatedCustomFilterOperation.h"
+ #endif
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ #define MIN_INTERSECT_FOR_REVEAL 32
+ 
+ using namespace std;
+@@ -3603,6 +3606,26 @@
+ 
+ void RenderLayer::paintLayer(GraphicsContext* context, const LayerPaintingInfo& paintingInfo, PaintLayerFlags paintFlags)
+ {
++    if (tditrace_ex != NULL) {
++        char text[256];
++        int i;
++        if (name().is8Bit()) {
++            i = name().length() < 255 ? name().length() : 255;
++            strncpy(text, (char*)name().characters8(), i);
++        } else {
++            char* p = (char*)name().characters8();
++            for (i = 0 ; i < (name().length() < 255 ? name().length() : 255) ; i++) {
++                text[i] = p[i];
++            }
++        }
++        text[i]=0;
++        tditrace_ex(TDIMASK, "@S+RenderLayer::paintLayer() %s %dx%d+%d+%d", text,
++            paintingInfo.paintDirtyRect.width().toInt(),
++            paintingInfo.paintDirtyRect.height().toInt(),
++            paintingInfo.paintDirtyRect.x().toInt(),
++            paintingInfo.paintDirtyRect.y().toInt());
++    }
++
+ #if USE(ACCELERATED_COMPOSITING)
+     if (isComposited()) {
+         // The updatingControlTints() painting pass goes through compositing layers,
+@@ -3614,26 +3637,34 @@
+             && !shouldDoSoftwarePaint(this, paintFlags & PaintLayerPaintingReflection)
+             && !paintForFixedRootBackground(this, paintFlags)) {
+             // If this RenderLayer should paint into its backing, that will be done via RenderLayerBacking::paintIntoLayer().
++            if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+             return;
+         }
+     } else if (viewportConstrainedNotCompositedReason() == NotCompositedForBoundsOutOfView) {
+         // Don't paint out-of-view viewport constrained layers (when doing prepainting) because they will never be visible
+         // unless their position or viewport size is changed.
+         ASSERT(renderer()->style()->position() == FixedPosition);
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+         return;
+     }
+ #endif
+ 
+     // Non self-painting leaf layers don't need to be painted as their renderer() should properly paint itself.
+-    if (!isSelfPaintingLayer() && !hasSelfPaintingLayerDescendant())
++    if (!isSelfPaintingLayer() && !hasSelfPaintingLayerDescendant()) {
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+         return;
++    }
+ 
+-    if (shouldSuppressPaintingLayer(this))
++    if (shouldSuppressPaintingLayer(this)) {
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+         return;
++    }
+     
+     // If this layer is totally invisible then there is nothing to paint.
+-    if (!renderer()->opacity())
++    if (!renderer()->opacity()) {
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+         return;
++    }
+ 
+     if (paintsWithTransparency(paintingInfo.paintBehavior))
+         paintFlags |= PaintLayerHaveTransparency;
+@@ -3642,8 +3673,10 @@
+     if (paintsWithTransform(paintingInfo.paintBehavior) && !(paintFlags & PaintLayerAppliedTransform)) {
+         TransformationMatrix layerTransform = renderableTransform(paintingInfo.paintBehavior);
+         // If the transform can't be inverted, then don't paint anything.
+-        if (!layerTransform.isInvertible())
++        if (!layerTransform.isInvertible()) {
++            if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+             return;
++        }
+ 
+         // If we have a transparency layer enclosing us and we are the root of a transform, then we need to establish the transparency
+         // layer from the parent now, assuming there is a parent
+@@ -3656,6 +3689,7 @@
+ 
+         if (enclosingPaginationLayer()) {
+             paintTransformedLayerIntoFragments(context, paintingInfo, paintFlags);
++            if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+             return;
+         }
+ 
+@@ -3677,10 +3711,13 @@
+         if (parent())
+             parent()->restoreClip(context, paintingInfo.paintDirtyRect, clipRect);
+ 
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+         return;
+     }
+     
+     paintLayerContentsAndReflection(context, paintingInfo, paintFlags);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+ }
+ 
+ void RenderLayer::paintLayerContentsAndReflection(GraphicsContext* context, const LayerPaintingInfo& paintingInfo, PaintLayerFlags paintFlags)
+diff -Naur a/Source/WebCore/rendering/RenderVideo.cpp b/Source/WebCore/rendering/RenderVideo.cpp
+--- a/Source/WebCore/rendering/RenderVideo.cpp	2015-06-14 14:43:02.911820213 -0700
++++ b/Source/WebCore/rendering/RenderVideo.cpp	2016-02-19 12:36:14.890749400 -0800
+@@ -44,6 +44,9 @@
+ #include "RenderFullScreen.h"
+ #endif
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<16|1<<0)
++
+ namespace WebCore {
+ 
+ using namespace HTMLNames;
+@@ -192,6 +195,8 @@
+     MediaPlayer* mediaPlayer = mediaElement()->player();
+     bool displayingPoster = videoElement()->shouldDisplayPosterImage();
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+RenderVideo::paintReplaced() %dx%d+%d+%d,+%d+%d", paintInfo.rect.width(), paintInfo.rect.height(), paintInfo.rect.x(), paintInfo.rect.y(), paintOffset.x().toInt(), paintOffset.y().toInt());
++
+     Page* page = 0;
+     if (Frame* frame = this->frame())
+         page = frame->page();
