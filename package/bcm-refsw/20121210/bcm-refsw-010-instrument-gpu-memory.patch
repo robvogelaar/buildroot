@@ -1,0 +1,149 @@
+--- a/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c
++++ b/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c
+@@ -710,6 +710,9 @@
+    - MEM_HANDLE_INVALID is returned.
+ */
+
++extern void tditrace(const char* format, ...) __attribute__((weak));
++#include <malloc.h>
++
+ MEM_HANDLE_T mem_alloc_ex(
+    uint32_t size,
+    uint32_t align,
+@@ -721,6 +724,27 @@
+
+    UNUSED(mode);
+
++   if (tditrace) {
++      unsigned int ra = 0;
++      #ifdef __mips__
++      asm volatile("move %0, $ra" : "=r"(ra));
++      #endif
++      char text[256];
++      int i;
++      strcpy(text, desc);
++      for (i = 0; i < strlen(text); i++) {
++         if (text[i] == ' ') text[i] = '_';
++      }
++      if (flags & MEM_FLAG_DIRECT) {
++         tditrace("@S+mem_alloc:%s %d ra=%x", text, size, ra);
++         //tditrace("@T+mem_alloc:%s %d", text, size);
++         tditrace("mem_alloc[]~%d", size);
++      } else {
++         //tditrace("@A+mem_alloc:%s %d ra=%x", text, size, ra);
++         tditrace("mem_alloc()~%d", size);
++      }
++   }
++
+    assert(is_power_of_2(align));
+    assert(!(flags & ~MEM_FLAG_ALL));
+    assert((flags & MEM_FLAG_RESIZEABLE) || !(flags & MEM_FLAG_HINT_GROW));
+@@ -740,6 +764,28 @@
+    }
+
+    init_header(h, size, align, flags, desc);
++
++   if (tditrace) {
++      char text[256];
++      int i;
++      strcpy(text, desc);
++      for (i = 0; i < strlen(text); i++) {
++         if (text[i] == ' ') text[i] = '_';
++      }
++      if (flags & MEM_FLAG_DIRECT) {
++          //tditrace("@T-mem_alloc:%s", text);
++          tditrace("FREE~%d", g_mgr.memInterface->GetInfo(g_mgr.memInterface->context, BEGL_MemFree));
++      } else {
++          //tditrace("@A-mem_alloc:%s", text);
++          struct mallinfo mi;
++          mi = mallinfo();
++          tditrace("mi.arena~%d", mi.arena);
++      }
++      if (h->ptr == NULL) {
++         tditrace("@E+mem_alloc_FAIL:%s %d", text, size);
++      }
++   }
++
+    if ((h->size > 0) && (h->ptr == NULL))
+    {
+       free(h);
+@@ -824,6 +870,19 @@
+    /* put me back in if things start to go wrong */
+    /*assert((handle != MEM_ZERO_SIZE_HANDLE) && (handle != MEM_EMPTY_STRING_HANDLE));*/
+
++   if (tditrace) {
++      unsigned int ra = 0;
++      #ifdef __mips__
++      asm volatile("move %0, $ra" : "=r"(ra));
++      #endif
++      if (h->flags & MEM_FLAG_DIRECT) {
++         tditrace("@S+mem_release ra=%x", ra);
++         //tditrace("@T+mem_release");
++      } else {
++         //tditrace("@A+mem_release ra=%x", ra);
++      }
++   }
++
+    if (h->term)
+       h->term(h->ptr, h->size);
+
+@@ -845,6 +904,18 @@
+       }
+    }
+    free(h);
++
++   if (tditrace) {
++      if (h->flags & MEM_FLAG_DIRECT) {
++         //tditrace("@T-mem_release");
++         if (tditrace) tditrace("FREE~%d", g_mgr.memInterface->GetInfo(g_mgr.memInterface->context, BEGL_MemFree));
++      } else {
++         //tditrace("@A-mem_release");
++         struct mallinfo mi;
++         mi = mallinfo();
++         tditrace("mi.arena~%d", mi.arena);
++      }
++   }
+ }
+
+ /*
+@@ -1120,6 +1191,21 @@
+
+    UNUSED(mode);
+
++   if (tditrace) {
++      unsigned int ra = 0;
++      #ifdef __mips__
++      asm volatile("move %0, $ra" : "=r"(ra));
++      #endif
++      if (h->flags & MEM_FLAG_DIRECT) {
++         tditrace("@S+mem_resize %d %x", size, ra);
++         //tditrace("@T+mem_resize %d", size);
++         tditrace("mem_resize[]~%d", size);
++      } else {
++         //tditrace("@A+mem_resize %d %x", size, ra);
++         tditrace("mem_resize()~%d", size);
++      }
++   }
++
+    assert(h->magic == MAGIC);
+    assert(h->ref_count != 0);
+ #ifdef BCG_VC4_DEFRAG
+@@ -1185,6 +1271,18 @@
+
+    vcos_mutex_unlock((VCOS_MUTEX_T *)&g_mgr.mh);
+
++   if (tditrace) {
++      if (h->flags & MEM_FLAG_DIRECT) {
++         //tditrace("@T-mem_resize");
++         tditrace("FREE~%d", g_mgr.memInterface->GetInfo(g_mgr.memInterface->context, BEGL_MemFree));
++      } else {
++         //tditrace("@A-mem_resize");
++         struct mallinfo mi;
++         mi = mallinfo();
++         tditrace("mi.arena~%d", mi.arena);
++      }
++   }
++
+    return res;
+ }
+
