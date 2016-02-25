@@ -1,12 +1,12 @@
 diff -Naur a/Source/WebCore/dom/Document.cpp b/Source/WebCore/dom/Document.cpp
 --- a/Source/WebCore/dom/Document.cpp	2015-06-14 14:43:02.987820215 -0700
-+++ b/Source/WebCore/dom/Document.cpp	2016-02-19 09:21:01.616226654 -0800
++++ b/Source/WebCore/dom/Document.cpp	2016-02-24 16:18:54.384860649 -0800
 @@ -167,6 +167,9 @@
  #include <wtf/PassRefPtr.h>
  #include <wtf/text/StringBuffer.h>
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<0)
 +
  #if USE(ACCELERATED_COMPOSITING)
  #include "RenderLayerCompositor.h"
@@ -31,13 +31,13 @@ diff -Naur a/Source/WebCore/dom/Document.cpp b/Source/WebCore/dom/Document.cpp
      // to check if any other elements ended up under the mouse pointer due to re-layout.
 diff -Naur a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp b/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp
 --- a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp	2015-06-14 14:43:02.911820213 -0700
-+++ b/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp	2016-02-19 10:26:29.559375296 -0800
++++ b/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp	2016-02-24 16:19:25.398607594 -0800
 @@ -58,6 +58,9 @@
  #include "TextMetrics.h"
  #include "TextRun.h"
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<0)
 +
  #if USE(ACCELERATED_COMPOSITING)
  #include "RenderLayer.h"
@@ -124,13 +124,13 @@ diff -Naur a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp b/Source/We
  void CanvasRenderingContext2D::strokeText(const String& text, float x, float y)
 diff -Naur a/Source/WebCore/page/Console.cpp b/Source/WebCore/page/Console.cpp
 --- a/Source/WebCore/page/Console.cpp	2015-06-14 14:43:02.987820215 -0700
-+++ b/Source/WebCore/page/Console.cpp	2016-02-19 12:32:58.191139800 -0800
++++ b/Source/WebCore/page/Console.cpp	2016-02-24 16:19:50.824219130 -0800
 @@ -156,9 +156,25 @@
      internalAddMessage(page(), ClearMessageType, LogMessageLevel, state, arguments, true);
  }
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<1)
 +
  void Console::trace(ScriptState* state, PassRefPtr<ScriptArguments> arguments)
  {
@@ -154,13 +154,13 @@ diff -Naur a/Source/WebCore/page/Console.cpp b/Source/WebCore/page/Console.cpp
  void Console::assertCondition(ScriptState* state, PassRefPtr<ScriptArguments> arguments, bool condition)
 diff -Naur a/Source/WebCore/page/DOMTimer.cpp b/Source/WebCore/page/DOMTimer.cpp
 --- a/Source/WebCore/page/DOMTimer.cpp	2015-06-14 14:43:02.987820215 -0700
-+++ b/Source/WebCore/page/DOMTimer.cpp	2016-02-19 13:19:31.386009400 -0800
++++ b/Source/WebCore/page/DOMTimer.cpp	2016-02-24 16:20:02.639865709 -0800
 @@ -35,6 +35,9 @@
  #include <wtf/HashSet.h>
  #include <wtf/StdLibExtras.h>
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<0)
 +
  using namespace std;
  
@@ -194,13 +194,13 @@ diff -Naur a/Source/WebCore/page/DOMTimer.cpp b/Source/WebCore/page/DOMTimer.cpp
          double minimumInterval = context->minimumTimerInterval();
 diff -Naur a/Source/WebCore/page/FrameView.cpp b/Source/WebCore/page/FrameView.cpp
 --- a/Source/WebCore/page/FrameView.cpp	2015-06-14 14:43:02.999820215 -0700
-+++ b/Source/WebCore/page/FrameView.cpp	2016-02-19 09:17:14.150018166 -0800
++++ b/Source/WebCore/page/FrameView.cpp	2016-02-24 16:20:11.838919907 -0800
 @@ -77,6 +77,9 @@
  #include "TextResourceDecoder.h"
  #include "TextStream.h"
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<0)
 +
  #include <wtf/CurrentTime.h>
  #include <wtf/TemporaryChange.h>
@@ -231,13 +231,13 @@ diff -Naur a/Source/WebCore/page/FrameView.cpp b/Source/WebCore/page/FrameView.c
      }
 diff -Naur a/Source/WebCore/platform/graphics/GraphicsContext.cpp b/Source/WebCore/platform/graphics/GraphicsContext.cpp
 --- a/Source/WebCore/platform/graphics/GraphicsContext.cpp	2015-06-14 14:43:02.959820214 -0700
-+++ b/Source/WebCore/platform/graphics/GraphicsContext.cpp	2016-02-19 12:41:02.656953700 -0800
++++ b/Source/WebCore/platform/graphics/GraphicsContext.cpp	2016-02-24 16:21:39.924896100 -0800
 @@ -36,6 +36,9 @@
  
  #include "stdio.h"
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<0)
 +
  using namespace std;
  
@@ -289,13 +289,13 @@ diff -Naur a/Source/WebCore/platform/graphics/GraphicsContext.cpp b/Source/WebCo
  void GraphicsContext::drawTiledImage(Image* image, ColorSpace styleColorSpace, const IntRect& destRect, const IntPoint& srcPoint, const IntSize& tileSize, CompositeOperator op, bool useLowQualityScale, BlendMode blendMode)
 diff -Naur a/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp b/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp
 --- a/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp	2015-06-14 14:43:02.967820214 -0700
-+++ b/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp	2016-02-19 10:46:42.617109998 -0800
++++ b/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp	2016-02-24 16:20:25.345970481 -0800
 @@ -38,6 +38,9 @@
  #include <qpa/qplatformpixmap.h>
  #include <wtf/text/CString.h>
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<16|1<<0)
++#define TDIMASK (1<<0)
 +
  #if QT_VERSION >= 0x050100
  #include <QOffscreenSurface>
@@ -353,13 +353,13 @@ diff -Naur a/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp b/Sourc
  bool GraphicsContext3DPrivate::makeCurrentIfNeeded() const
 diff -Naur a/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp b/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp
 --- a/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp	2015-06-14 14:43:02.963820214 -0700
-+++ b/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp	2016-02-19 13:32:53.879802300 -0800
++++ b/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp	2016-02-24 16:20:34.310518699 -0800
 @@ -73,6 +73,9 @@
  #include <QVector>
  #include <wtf/MathExtras.h>
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<0)
 +
  #if OS(WINDOWS)
  QT_BEGIN_NAMESPACE
@@ -486,13 +486,13 @@ diff -Naur a/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp b/Source/
  void GraphicsContext::strokeRect(const FloatRect& rect, float lineWidth)
 diff -Naur a/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp b/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp
 --- a/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp	2015-06-14 14:43:02.967820214 -0700
-+++ b/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp	2016-02-19 11:10:25.342390400 -0800
++++ b/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp	2016-02-24 16:20:42.827639750 -0800
 @@ -278,12 +278,17 @@
      painter->restore();
  }
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<0)
 +
  void ImageBufferDataPrivateAccelerated::paintToTextureMapper(TextureMapper* textureMapper, const FloatRect& targetRect, const TransformationMatrix& matrix, float opacity)
  {
@@ -515,13 +515,13 @@ diff -Naur a/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp b/Source/WebC
  #endif // ACCELERATED_2D_CANVAS
 diff -Naur a/Source/WebCore/platform/graphics/qt/ImageQt.cpp b/Source/WebCore/platform/graphics/qt/ImageQt.cpp
 --- a/Source/WebCore/platform/graphics/qt/ImageQt.cpp	2015-06-14 14:43:02.959820214 -0700
-+++ b/Source/WebCore/platform/graphics/qt/ImageQt.cpp	2016-02-19 10:34:44.555404803 -0800
++++ b/Source/WebCore/platform/graphics/qt/ImageQt.cpp	2016-02-24 16:20:52.130188894 -0800
 @@ -53,6 +53,9 @@
  
  #include <math.h>
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<0)
 +
  #if OS(WINDOWS)
  QT_BEGIN_NAMESPACE
@@ -554,13 +554,13 @@ diff -Naur a/Source/WebCore/platform/graphics/qt/ImageQt.cpp b/Source/WebCore/pl
  }
 diff -Naur a/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp b/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp
 --- a/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp	2015-06-14 14:43:02.971820214 -0700
-+++ b/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp	2016-02-19 11:13:11.993699043 -0800
++++ b/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp	2016-02-24 16:21:03.035097577 -0800
 @@ -524,11 +524,17 @@
          m_private->copyFromTexture(texture, sourceRect);
  }
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<0)
  
  void GraphicsSurface::platformPaintToTextureMapper(TextureMapper* textureMapper, const FloatRect& targetRect, const TransformationMatrix& transform, float opacity)
  {
@@ -574,14 +574,14 @@ diff -Naur a/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp
  
  uint32_t GraphicsSurface::platformFrontBuffer() const
 diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp
---- a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp	2015-06-14 14:43:02.955820214 -0700
-+++ b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp	2016-02-19 10:21:55.267507330 -0800
+--- a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp	2016-02-24 16:14:13.889188282 -0800
++++ b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp	2016-02-24 16:21:29.315680502 -0800
 @@ -82,14 +82,21 @@
          sortByZOrder(m_children);
  }
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<2)
 +
  void TextureMapperLayer::paint()
  {
@@ -659,7 +659,7 @@ diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/So
  
      bool shouldClip = m_state.masksToBounds && !m_state.preserves3D;
      if (shouldClip) {
-@@ -192,10 +215,14 @@
+@@ -192,6 +215,8 @@
  
      if (shouldClip)
          options.textureMapper->endClip();
@@ -667,14 +667,8 @@ diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/So
 +    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::paintSelfAndChildren()");
  }
  
- bool TextureMapperLayer::shouldBlend() const
- {
-+    return false;
-+
-     if (m_state.preserves3D)
-         return false;
- 
-@@ -220,6 +247,8 @@
+ bool TextureMapperLayer::shouldPaintUsingOverlapRegions() const
+@@ -219,6 +244,8 @@
  
  void TextureMapperLayer::paintSelfAndChildrenWithReplica(const TextureMapperPaintOptions& options)
  {
@@ -683,7 +677,7 @@ diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/So
      if (m_state.replicaLayer) {
          TextureMapperPaintOptions replicaOptions(options);
          replicaOptions.transform
-@@ -229,6 +258,8 @@
+@@ -228,6 +255,8 @@
      }
  
      paintSelfAndChildren(options);
@@ -692,7 +686,7 @@ diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/So
  }
  
  void TextureMapperLayer::setAnimatedTransform(const TransformationMatrix& matrix)
-@@ -330,8 +361,20 @@
+@@ -329,8 +358,20 @@
      Region overlapRegion;
      Region nonOverlapRegion;
      computeOverlapRegions(overlapRegion, nonOverlapRegion, ResolveSelfOverlapAlways);
@@ -713,7 +707,7 @@ diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/So
          return;
      }
  
-@@ -347,10 +390,17 @@
+@@ -346,10 +387,17 @@
  
      for (size_t i = 0; i < rects.size(); ++i) {
          IntRect rect = rects[i];
@@ -732,7 +726,7 @@ diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/So
          paintSelfAndChildrenWithReplica(options);
          options.textureMapper->endClip();
      }
-@@ -367,17 +417,31 @@
+@@ -366,17 +414,31 @@
      adjustedClipBounds.move(-options.offset);
      for (size_t i = 0; i < rects.size(); ++i) {
          IntRect rect = rects[i];
@@ -766,7 +760,7 @@ diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/So
  }
  
  void TextureMapperLayer::applyMask(const TextureMapperPaintOptions& options)
-@@ -414,6 +478,8 @@
+@@ -413,6 +475,8 @@
  
  void TextureMapperLayer::paintWithIntermediateSurface(const TextureMapperPaintOptions& options, const IntRect& rect)
  {
@@ -775,7 +769,7 @@ diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/So
      RefPtr<BitmapTexture> replicaSurface;
      RefPtr<BitmapTexture> mainSurface;
      TextureMapperPaintOptions paintOptions(options);
-@@ -441,22 +507,34 @@
+@@ -440,22 +504,34 @@
      }
  
      commitSurface(options, mainSurface, rect, options.opacity);
@@ -788,9 +782,9 @@ diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/So
 -    if (!isVisible())
 -        return;
 +    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+TextureMapperLayer::paintRecursive()");
- 
-+    if (!isVisible()) {
 +
++    if (!isVisible()) {
+ 
 +        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::paintRecursive()");
 +
 +        return;
@@ -798,21 +792,21 @@ diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/So
      TextureMapperPaintOptions paintOptions(options);
      paintOptions.opacity *= m_currentOpacity;
  
-     if (!shouldBlend()) {
-         paintSelfAndChildrenWithReplica(paintOptions);
+     if (shouldPaintUsingOverlapRegions()) {
+         paintUsingOverlapRegions(paintOptions);
 +
 +        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::paintRecursive()");
 +
          return;
      }
  
-     paintUsingOverlapRegions(paintOptions);
+     paintSelfAndChildrenWithReplica(paintOptions);
 +
 +    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-TextureMapperLayer::paintRecursive()");
  }
  
  TextureMapperLayer::~TextureMapperLayer()
-@@ -686,6 +764,8 @@
+@@ -685,6 +761,8 @@
  
  void TextureMapperLayer::syncAnimations()
  {
@@ -821,7 +815,7 @@ diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/So
      m_animations.apply(this);
      if (!m_animations.hasActiveAnimationsOfType(AnimatedPropertyWebkitTransform))
          m_currentTransform.setLocalTransform(m_state.transform);
-@@ -696,6 +776,8 @@
+@@ -695,6 +773,8 @@
      if (!m_animations.hasActiveAnimationsOfType(AnimatedPropertyWebkitFilter))
          m_currentFilters = m_state.filters;
  #endif
@@ -832,13 +826,13 @@ diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/So
  bool TextureMapperLayer::isAncestorFixedToViewport() const
 diff -Naur a/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp b/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp
 --- a/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp	2015-06-14 14:43:02.971820214 -0700
-+++ b/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp	2016-02-19 09:23:46.879520807 -0800
++++ b/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp	2016-02-24 16:21:50.099527036 -0800
 @@ -42,6 +42,9 @@
  #include "PlatformInstrumentation.h"
  #include <wtf/PassOwnPtr.h>
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<0)
 +
  extern "C" {
  #if USE(ICCJPEG)
@@ -859,13 +853,13 @@ diff -Naur a/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp b/
      return &frame;
 diff -Naur a/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp b/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp
 --- a/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp	2015-06-14 14:43:02.975820214 -0700
-+++ b/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp	2016-02-19 09:27:14.537877940 -0800
++++ b/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp	2016-02-24 16:22:03.356935969 -0800
 @@ -50,6 +50,9 @@
  #include "qcms.h"
  #endif
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<0)
 +
  #if defined(PNG_LIBPNG_VER_MAJOR) && defined(PNG_LIBPNG_VER_MINOR) && (PNG_LIBPNG_VER_MAJOR > 1 || (PNG_LIBPNG_VER_MAJOR == 1 && PNG_LIBPNG_VER_MINOR >= 4))
  #define JMPBUF(png_ptr) png_jmpbuf(png_ptr)
@@ -886,13 +880,13 @@ diff -Naur a/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp b/So
      return &frame;
 diff -Naur a/Source/WebCore/rendering/RenderBlock.cpp b/Source/WebCore/rendering/RenderBlock.cpp
 --- a/Source/WebCore/rendering/RenderBlock.cpp	2015-06-14 14:43:02.931820214 -0700
-+++ b/Source/WebCore/rendering/RenderBlock.cpp	2016-02-19 12:37:25.932068500 -0800
++++ b/Source/WebCore/rendering/RenderBlock.cpp	2016-02-24 16:22:28.503034723 -0800
 @@ -70,6 +70,9 @@
  #include "ShapeOutsideInfo.h"
  #endif
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<0)
 +
  using namespace std;
  using namespace WTF;
@@ -966,13 +960,13 @@ diff -Naur a/Source/WebCore/rendering/RenderBlock.cpp b/Source/WebCore/rendering
  void RenderBlock::paintColumnRules(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
 diff -Naur a/Source/WebCore/rendering/RenderBox.cpp b/Source/WebCore/rendering/RenderBox.cpp
 --- a/Source/WebCore/rendering/RenderBox.cpp	2015-06-14 14:43:02.951820214 -0700
-+++ b/Source/WebCore/rendering/RenderBox.cpp	2016-02-19 12:38:23.388871400 -0800
++++ b/Source/WebCore/rendering/RenderBox.cpp	2016-02-24 16:22:37.587781037 -0800
 @@ -61,6 +61,9 @@
  #include "RenderLayerCompositor.h"
  #endif
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<0)
 +
  using namespace std;
  
@@ -1029,13 +1023,13 @@ diff -Naur a/Source/WebCore/rendering/RenderBox.cpp b/Source/WebCore/rendering/R
  bool RenderBox::getBackgroundPaintedExtent(LayoutRect& paintedExtent) const
 diff -Naur a/Source/WebCore/rendering/RenderImage.cpp b/Source/WebCore/rendering/RenderImage.cpp
 --- a/Source/WebCore/rendering/RenderImage.cpp	2015-06-14 14:43:02.919820213 -0700
-+++ b/Source/WebCore/rendering/RenderImage.cpp	2016-02-19 12:36:35.275550100 -0800
++++ b/Source/WebCore/rendering/RenderImage.cpp	2016-02-24 16:22:45.605361045 -0800
 @@ -47,6 +47,9 @@
  #include "SVGImage.h"
  #include <wtf/StackStats.h>
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<0)
 +
  using namespace std;
  
@@ -1051,13 +1045,13 @@ diff -Naur a/Source/WebCore/rendering/RenderImage.cpp b/Source/WebCore/rendering
      if (paintInfo.phase == PaintPhaseOutline)
 diff -Naur a/Source/WebCore/rendering/RenderLayerBacking.cpp b/Source/WebCore/rendering/RenderLayerBacking.cpp
 --- a/Source/WebCore/rendering/RenderLayerBacking.cpp	2015-06-14 14:43:02.915820213 -0700
-+++ b/Source/WebCore/rendering/RenderLayerBacking.cpp	2016-02-19 12:40:03.613301900 -0800
++++ b/Source/WebCore/rendering/RenderLayerBacking.cpp	2016-02-24 16:23:05.893214874 -0800
 @@ -2011,6 +2011,9 @@
      context.restore();
  }
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<0)
 +
  // Up-call from compositing layer drawing callback.
  void RenderLayerBacking::paintContents(const GraphicsLayer* graphicsLayer, GraphicsContext& context, GraphicsLayerPaintingPhase paintingPhase, const IntRect& clip)
@@ -1130,13 +1124,13 @@ diff -Naur a/Source/WebCore/rendering/RenderLayerBacking.cpp b/Source/WebCore/re
          m_graphicsLayer->removeAnimation(GraphicsLayer::animationNameForTransition(animatedProperty));
 diff -Naur a/Source/WebCore/rendering/RenderLayer.cpp b/Source/WebCore/rendering/RenderLayer.cpp
 --- a/Source/WebCore/rendering/RenderLayer.cpp	2015-06-14 14:43:02.943820214 -0700
-+++ b/Source/WebCore/rendering/RenderLayer.cpp	2016-02-19 12:39:08.684123900 -0800
++++ b/Source/WebCore/rendering/RenderLayer.cpp	2016-02-24 16:22:56.592021551 -0800
 @@ -126,6 +126,9 @@
  #include "ValidatedCustomFilterOperation.h"
  #endif
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<0)
 +
  #define MIN_INTERSECT_FOR_REVEAL 32
  
@@ -1242,13 +1236,13 @@ diff -Naur a/Source/WebCore/rendering/RenderLayer.cpp b/Source/WebCore/rendering
  void RenderLayer::paintLayerContentsAndReflection(GraphicsContext* context, const LayerPaintingInfo& paintingInfo, PaintLayerFlags paintFlags)
 diff -Naur a/Source/WebCore/rendering/RenderVideo.cpp b/Source/WebCore/rendering/RenderVideo.cpp
 --- a/Source/WebCore/rendering/RenderVideo.cpp	2015-06-14 14:43:02.911820213 -0700
-+++ b/Source/WebCore/rendering/RenderVideo.cpp	2016-02-19 12:36:14.890749400 -0800
++++ b/Source/WebCore/rendering/RenderVideo.cpp	2016-02-24 16:23:15.165968581 -0800
 @@ -44,6 +44,9 @@
  #include "RenderFullScreen.h"
  #endif
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16|1<<0)
++#define TDIMASK (1<<0)
 +
  namespace WebCore {
  

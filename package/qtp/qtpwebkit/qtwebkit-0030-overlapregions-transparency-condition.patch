@@ -1,0 +1,64 @@
+diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp
+--- a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp	2014-12-26 02:56:19.000000000 -0800
++++ b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp	2016-02-24 15:52:51.477977438 -0800
+@@ -194,13 +194,12 @@
+         options.textureMapper->endClip();
+ }
+ 
+-bool TextureMapperLayer::shouldBlend() const
++bool TextureMapperLayer::shouldPaintUsingOverlapRegions() const
+ {
+     if (m_state.preserves3D)
+         return false;
+ 
+-    return m_currentOpacity < 1
+-        || hasFilters()
++    return hasFilters()
+         || m_state.maskLayer
+         || (m_state.replicaLayer && m_state.replicaLayer->m_state.maskLayer);
+ }
+@@ -316,7 +315,7 @@
+         resolveOverlaps(replicaRegion, newOverlapRegion, newNonOverlapRegion);
+     }
+ 
+-    if ((mode != ResolveSelfOverlapAlways) && shouldBlend()) {
++    if (mode != ResolveSelfOverlapAlways) {
+         newNonOverlapRegion.unite(newOverlapRegion);
+         newOverlapRegion = Region();
+     }
+@@ -451,12 +450,12 @@
+     TextureMapperPaintOptions paintOptions(options);
+     paintOptions.opacity *= m_currentOpacity;
+ 
+-    if (!shouldBlend()) {
+-        paintSelfAndChildrenWithReplica(paintOptions);
++    if (shouldPaintUsingOverlapRegions()) {
++        paintUsingOverlapRegions(paintOptions);
+         return;
+     }
+ 
+-    paintUsingOverlapRegions(paintOptions);
++    paintSelfAndChildrenWithReplica(paintOptions);
+ }
+ 
+ TextureMapperLayer::~TextureMapperLayer()
+diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.h b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.h
+--- a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.h	2014-12-26 02:56:19.000000000 -0800
++++ b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.h	2016-02-24 14:30:22.397741900 -0800
+@@ -154,6 +154,7 @@
+     void computeOverlapRegions(Region& overlapRegion, Region& nonOverlapRegion, ResolveSelfOverlapMode);
+ 
+     void paintRecursive(const TextureMapperPaintOptions&);
++    bool shouldPaintUsingOverlapRegions() const;
+     void paintUsingOverlapRegions(const TextureMapperPaintOptions&);
+     PassRefPtr<BitmapTexture> paintIntoSurface(const TextureMapperPaintOptions&, const IntSize&);
+     void paintWithIntermediateSurface(const TextureMapperPaintOptions&, const IntRect&);
+@@ -177,8 +178,6 @@
+         MultipleLayersWithContents
+     };
+ 
+-    bool shouldBlend() const;
+-
+     inline FloatRect layerRect() const
+     {
+         return FloatRect(FloatPoint::zero(), m_state.size);
