@@ -16,10 +16,14 @@
 #
 ## find output/target -name '*Qt*' | xargs rm -rf && find output/host -name '*Qt*' | xargs rm -rf
 #
+# SDK3.1.7 / 3.1.9:
+#
+# 
+#
 ############
 
-QTPBASE_VERSION_MAJOR = 5.3
-QTPBASE_VERSION = 5.3.2
+QTPBASE_VERSION_MAJOR = 5.4
+QTPBASE_VERSION = 5.4.1
 QTPBASE_SITE = http://download.qt-project.org/official_releases/qt/$(QTPBASE_VERSION_MAJOR)/$(QTPBASE_VERSION)/submodules/
 QTPBASE_SOURCE = qtbase-opensource-src-$(QTPBASE_VERSION).tar.xz
 

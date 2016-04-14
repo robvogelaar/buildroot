@@ -11,7 +11,6 @@
 #
 # SDK3.0.3:
 #
-#
 ## find output/target -name '*Qt*Web*' | xargs rm -rf && find output/host -name '*Qt*Web*' | xargs rm -rf
 #
 #  QTPWEBKIT_VERSION_MAJOR = 5.4
@@ -19,12 +18,16 @@
 #  QTPWEBKIT_SITE = http://download.qt-project.org/official_releases/qt/$(QTPWEBKIT_VERSION_MAJOR)/$(QTPWEBKIT_VERSION)/submodules/
 #  QTPWEBKIT_SOURCE = qtwebkit-opensource-src-$(QTPWEBKIT_VERSION).tar.xz
 #
+# SDK3.1.7 / 3.1.9:
+#
+# git@github.com:Metrological/qtwebkit.git - branch:qt5.4 - commit:fe3dba3a52ca361458be25f5bb6a4711fffc6c19 - date:Dec 28, 2015
+#
 ############
 
-QTPWEBKIT_VERSION = 3eddba879bbda7cbc0692c17d16afd32576f20fb
-
+QTPWEBKIT_VERSION = fe3dba3a52ca361458be25f5bb6a4711fffc6c19
 QTPWEBKIT_SITE = git@github.com:Metrological/qtwebkit.git
 QTPWEBKIT_SITE_METHOD = git
+
 
 
 QTPWEBKIT_DEPENDENCIES = qtpbase sqlite host-ruby host-gperf host-bison host-flex
