@@ -12,7 +12,7 @@ FONTCONFIG_LICENSE = fontconfig license
 FONTCONFIG_LICENSE_FILES = COPYING
 
 FONTCONFIG_CONF_OPT = --with-arch=$(GNU_TARGET_NAME) \
-                --with-default-fonts=/usr/lib/fonts \
+                --with-default-fonts=/usr/share/fonts \
 		--with-cache-dir=/var/cache/fontconfig \
 		--disable-docs
 

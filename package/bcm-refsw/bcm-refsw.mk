@@ -52,6 +52,24 @@ else ifeq ($(BR2_BCM_REFSW_VERSION_V15_2),y)
 	else
 		BCM_REFSW_EXTRA_DOWNLOADS = refsw_wayland.tar.gz
 	endif
+else ifeq ($(BR2_BCM_REFSW_VERSION_V15_3),y)
+	BCM_REFSW_SITE = file://../bcm-refsw
+	BCM_REFSW_VERSION = 20150918
+	BCM_REFSW_SOURCE = refsw_release_unified_$(BCM_REFSW_VERSION).src.tar.xz
+	ifeq ($(BR2_BCMREFSW_WAYLAND_SUPPORT_NONE),y)
+		BCM_REFSW_EXTRA_DOWNLOADS =
+	else
+		BCM_REFSW_EXTRA_DOWNLOADS = refsw_wayland.tar.gz
+	endif
+else ifeq ($(BR2_BCM_REFSW_VERSION_V15_4),y)
+	BCM_REFSW_SITE = file://../bcm-refsw
+	BCM_REFSW_VERSION = 20151217
+	BCM_REFSW_SOURCE = refsw_release_unified_$(BCM_REFSW_VERSION).src.tar.xz
+	ifeq ($(BR2_BCMREFSW_WAYLAND_SUPPORT_NONE),y)
+		BCM_REFSW_EXTRA_DOWNLOADS =
+	else
+		BCM_REFSW_EXTRA_DOWNLOADS = refsw_wayland.tar.gz
+	endif
 else
 	BCM_REFSW_SITE = file:///
 	BCM_REFSW_VERSION = CUSTOM
@@ -167,7 +185,7 @@ endif
 
 define BCM_REFSW_BUILD_CMDS
 	$(BCM_MAKE_ENV) $(MAKE) $(BCM_MAKEFLAGS) -C $(@D)/nexus/build all
-    if [ "x$(BR2_BCM_REFSW_VERSION_V15)" = "xy" ] || [ "x$(BR2_BCM_REFSW_VERSION_V15_2)" = "xy" ] ; then \
+    if [ "x$(BR2_BCM_REFSW_VERSION_V15)" = "xy" ] || [ "x$(BR2_BCM_REFSW_VERSION_V15_2)" = "xy" ] || [ "x$(BR2_BCM_REFSW_VERSION_V15_3)" = "xy" ]|| [ "x$(BR2_BCM_REFSW_VERSION_V15_4)" = "xy" ]; then \
        $(BCM_MAKE_ENV) $(MAKE) $(BCM_MAKEFLAGS) -C $(@D)/rockford/middleware/${BCM_NEXUS_EGL_PACKAGE}/driver -f V3DDriver.mk \
                     OBJDIR=$(@D)/obj.${BCM_REFSW_PLATFORM}/rockford/middleware/v3d/driver/obj_${BCM_REFSW_PLATFORM}_release \
                     LIBDIR=$(@D)/obj.${BCM_REFSW_PLATFORM}/nexus/bin; \
@@ -238,7 +256,7 @@ define BCM_REFSW_INSTALL_STAGING_CMDS
 	$(INSTALL) -m 644 package/bcm-refsw/vg.pc $(STAGING_DIR)/usr/lib/pkgconfig/
 	$(INSTALL) -m 644 $(@D)$(BCM_OUTPUT)nexus/bin/include/*.h $(STAGING_DIR)/usr/include/refsw/
 	$(INSTALL) -m 644 $(@D)/obj.$(call qstrip,${BR2_PACKAGE_BCM_REFSW_PLATFORM})/nexus/bin/include/platform_app.inc $(STAGING_DIR)/usr/include/; \
-	if [ "x$(BR2_BCM_REFSW_VERSION_V15)" = "xy" ] || [ "x$(BR2_BCM_REFSW_VERSION_V15_2)" = "xy" ] ; then \
+	if [ "x$(BR2_BCM_REFSW_VERSION_V15)" = "xy" ] || [ "x$(BR2_BCM_REFSW_VERSION_V15_2)" = "xy" ] || [ "x$(BR2_BCM_REFSW_VERSION_V15_3)" = "xy" ] || [ "x$(BR2_BCM_REFSW_VERSION_V15_4)" = "xy" ] ; then \
 		$(INSTALL) -m 644 $(@D)/rockford/middleware/${BCM_NEXUS_EGL_PACKAGE}/platform/nexus/*.h $(STAGING_DIR)/usr/include/refsw/; \
 		$(INSTALL) -m 644 $(@D)/rockford/middleware/${BCM_NEXUS_EGL_PACKAGE}/driver/interface/khronos/include/GLES/*.h $(STAGING_DIR)/usr/include/GLES/; \
 		$(INSTALL) -m 644 $(@D)/rockford/middleware/${BCM_NEXUS_EGL_PACKAGE}/driver/interface/khronos/include/GLES2/*.h $(STAGING_DIR)/usr/include/GLES2/; \
