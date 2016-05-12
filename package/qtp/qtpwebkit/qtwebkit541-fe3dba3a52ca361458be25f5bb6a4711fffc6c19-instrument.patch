@@ -31,7 +31,7 @@ diff -Naur a/Source/WebCore/dom/Document.cpp b/Source/WebCore/dom/Document.cpp
      // to check if any other elements ended up under the mouse pointer due to re-layout.
 diff -Naur a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp b/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp
 --- a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp	2015-05-27 11:10:00.978317900 -0700
-+++ b/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp	2016-04-13 13:55:31.843022143 -0700
++++ b/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp	2016-05-11 18:09:10.076975550 -0700
 @@ -58,6 +58,9 @@
  #include "TextMetrics.h"
  #include "TextRun.h"
@@ -42,16 +42,17 @@ diff -Naur a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp b/Source/We
  #if USE(ACCELERATED_COMPOSITING)
  #include "RenderLayer.h"
  #endif
-@@ -1039,6 +1042,8 @@
+@@ -1039,6 +1042,9 @@
          return;
      FloatRect rect(x, y, width, height);
  
-+    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CanvasRenderingContext2D::clearRect() %gx%g+%g+%g", rect.width(), rect.height(), rect.x(), rect.y());
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CanvasRenderingContext2D::clearRect() %dx%d+%d+%d", (int)rect.width(), (int)rect.height(), (int)rect.x(), (int)rect.y());
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+CanvasRenderingContext2D::clearRect() %dx%d+%d+%d", (int)rect.width(), (int)rect.height(), (int)rect.x(), (int)rect.y());
 +
      bool saved = false;
      if (shouldDrawShadows()) {
          context->save();
-@@ -1063,6 +1068,8 @@
+@@ -1063,6 +1069,8 @@
      if (saved)
          context->restore();
      didDraw(rect);
@@ -60,16 +61,17 @@ diff -Naur a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp b/Source/We
  }
  
  void CanvasRenderingContext2D::fillRect(float x, float y, float width, float height)
-@@ -1085,6 +1092,8 @@
+@@ -1085,6 +1093,9 @@
  
      FloatRect rect(x, y, width, height);
  
-+    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CanvasRenderingContext2D::fillRect() %gx%g+%g+%g", rect.width(), rect.height(), rect.x(), rect.y());
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CanvasRenderingContext2D::fillRect() %dx%d+%d+%d", (int)rect.width(), (int)rect.height(), (int)rect.x(), (int)rect.y());
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+CanvasRenderingContext2D::fillRect() %dx%d+%d+%d", (int)rect.width(), (int)rect.height(), (int)rect.x(), (int)rect.y());
 +
      if (rectContainsCanvas(rect)) {
          c->fillRect(rect);
          didDrawEntireCanvas();
-@@ -1099,6 +1108,8 @@
+@@ -1099,6 +1110,8 @@
          c->fillRect(rect);
          didDraw(rect);
      }
@@ -78,7 +80,7 @@ diff -Naur a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp b/Source/We
  }
  
  void CanvasRenderingContext2D::strokeRect(float x, float y, float width, float height)
-@@ -2083,12 +2094,43 @@
+@@ -2083,12 +2096,46 @@
  
  void CanvasRenderingContext2D::fillText(const String& text, float x, float y)
  {
@@ -95,6 +97,7 @@ diff -Naur a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp b/Source/We
 +    }
 +    t[i]=0;
 +    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CanvasRenderingContext2D::fillText() \"%s\"", t);
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+CanvasRenderingContext2D::fillText() \"%s\"", t);
 +
      drawTextInternal(text, x, y, true);
 +
@@ -105,6 +108,7 @@ diff -Naur a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp b/Source/We
  {
 +    if (text.is8Bit()) {
 +        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CanvasRenderingContext2D::fillText() \"%s\"", (char*)text.characters8());
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+CanvasRenderingContext2D::fillText() \"%s\"", (char*)text.characters8());
 +    } else {
 +        char t[128];
 +        int i;
@@ -114,6 +118,7 @@ diff -Naur a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp b/Source/We
 +        }
 +        t[i]=0;
 +        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CanvasRenderingContext2D::fillText() \"%s\"", t);
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+CanvasRenderingContext2D::fillText() \"%s\"", t);
 +    }
 +
      drawTextInternal(text, x, y, true, maxWidth, true);
@@ -179,7 +184,7 @@ diff -Naur a/Source/WebCore/html/canvas/WebGLRenderingContext.cpp b/Source/WebCo
  
 diff -Naur a/Source/WebCore/page/Console.cpp b/Source/WebCore/page/Console.cpp
 --- a/Source/WebCore/page/Console.cpp	2015-05-27 11:10:00.978317900 -0700
-+++ b/Source/WebCore/page/Console.cpp	2016-04-13 13:57:03.152846875 -0700
++++ b/Source/WebCore/page/Console.cpp	2016-05-09 10:46:58.000000000 -0700
 @@ -156,9 +156,25 @@
      internalAddMessage(page(), ClearMessageType, LogMessageLevel, state, arguments, true);
  }
@@ -195,7 +200,7 @@ diff -Naur a/Source/WebCore/page/Console.cpp b/Source/WebCore/page/Console.cpp
 +    if (tditrace_ex != NULL) {
 +        for (size_t i = 0; i < arguments->argumentCount(); ++i) {
 +            String argAsString = arguments->argumentAt(i).toString(arguments->globalState());
-+            tditrace_ex(TDIMASK, "@S+%s", argAsString.utf8().data());
++            tditrace_ex(TDIMASK, "%s", argAsString.utf8().data());
 +        }
 +       // size_t stackSize = ScriptCallStack::maxCallStackSizeToCapture;
 +       // RefPtr<ScriptCallStack> callStack(createScriptCallStack(state, stackSize));
@@ -344,13 +349,13 @@ diff -Naur a/Source/WebCore/platform/graphics/GraphicsContext.cpp b/Source/WebCo
  void GraphicsContext::drawTiledImage(Image* image, ColorSpace styleColorSpace, const IntRect& destRect, const IntPoint& srcPoint, const IntSize& tileSize, CompositeOperator op, bool useLowQualityScale, BlendMode blendMode)
 diff -Naur a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp
 --- a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp	2015-06-05 16:52:24.954936700 -0700
-+++ b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp	2016-04-13 14:24:08.188720749 -0700
++++ b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp	2016-05-09 11:01:20.000000000 -0700
 @@ -67,6 +67,9 @@
  #include <BlackBerryPlatformLog.h>
  #endif
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<0)
++#define TDIMASK (1<<3)
 +
  namespace WebCore {
  
@@ -1442,13 +1447,13 @@ diff -Naur a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGL.cpp
          resolveMultisamplingIfNecessary(IntRect(x, y, width, height));
 diff -Naur a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp
 --- a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp	2015-06-05 16:52:24.962936700 -0700
-+++ b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp	2016-04-13 14:25:03.351065596 -0700
++++ b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp	2016-05-09 11:01:05.000000000 -0700
 @@ -40,17 +40,23 @@
  #endif
  #include "NotImplemented.h"
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<0)
++#define TDIMASK (1<<3)
 +
 +
  namespace WebCore {
@@ -1507,13 +1512,13 @@ diff -Naur a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLES.c
  
 diff -Naur a/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp b/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp
 --- a/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp	2016-04-13 13:51:34.752574941 -0700
-+++ b/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp	2016-04-13 14:27:26.057226937 -0700
++++ b/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp	2016-05-09 11:36:09.000000000 -0700
 @@ -33,6 +33,9 @@
  #include <qpa/qplatformpixmap.h>
  #include <wtf/text/CString.h>
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<0)
++#define TDIMASK (1<<3)
 +
  #include <private/qopenglextensions_p.h>
  #include <QOffscreenSurface>
@@ -1846,13 +1851,13 @@ diff -Naur a/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp
  uint32_t GraphicsSurface::platformFrontBuffer() const
 diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperGL.cpp b/Source/WebCore/platform/graphics/texmap/TextureMapperGL.cpp
 --- a/Source/WebCore/platform/graphics/texmap/TextureMapperGL.cpp	2016-04-13 13:51:56.611880912 -0700
-+++ b/Source/WebCore/platform/graphics/texmap/TextureMapperGL.cpp	2016-04-13 14:34:51.628882610 -0700
++++ b/Source/WebCore/platform/graphics/texmap/TextureMapperGL.cpp	2016-05-09 10:43:08.000000000 -0700
 @@ -67,6 +67,9 @@
  #define GL_UNPACK_SKIP_ROWS 0x0CF3
  #endif
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<0)
++#define TDIMASK (1<<2)
 +
  #if USE(ACCELERATED_COMPOSITING) && USE(TEXTURE_MAPPER)
  
@@ -2199,8 +2204,14 @@ diff -Naur a/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp b/So
      return &frame;
 diff -Naur a/Source/WebCore/rendering/RenderBlock.cpp b/Source/WebCore/rendering/RenderBlock.cpp
 --- a/Source/WebCore/rendering/RenderBlock.cpp	2015-05-27 11:10:00.994317900 -0700
-+++ b/Source/WebCore/rendering/RenderBlock.cpp	2016-04-13 14:08:12.764082172 -0700
-@@ -70,6 +70,9 @@
++++ b/Source/WebCore/rendering/RenderBlock.cpp	2016-05-09 16:34:16.000000000 -0700
+@@ -65,11 +65,15 @@
+ #include <wtf/StackStats.h>
+ #include <wtf/TemporaryChange.h>
+ 
++
+ #if ENABLE(CSS_SHAPES)
+ #include "ShapeInsideInfo.h"
  #include "ShapeOutsideInfo.h"
  #endif
  
@@ -2210,7 +2221,7 @@ diff -Naur a/Source/WebCore/rendering/RenderBlock.cpp b/Source/WebCore/rendering
  using namespace std;
  using namespace WTF;
  using namespace Unicode;
-@@ -2970,6 +2973,44 @@
+@@ -2970,6 +2974,44 @@
   
  void RenderBlock::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
  {
@@ -2255,7 +2266,7 @@ diff -Naur a/Source/WebCore/rendering/RenderBlock.cpp b/Source/WebCore/rendering
      LayoutPoint adjustedPaintOffset = paintOffset + location();
      
      PaintPhase phase = paintInfo.phase;
-@@ -2982,8 +3023,11 @@
+@@ -2982,8 +3024,11 @@
          flipForWritingMode(overflowBox);
          overflowBox.inflate(maximalOutlineSize(paintInfo.phase));
          overflowBox.moveBy(adjustedPaintOffset);
@@ -2268,7 +2279,7 @@ diff -Naur a/Source/WebCore/rendering/RenderBlock.cpp b/Source/WebCore/rendering
      }
  
      bool pushedClip = pushContentsClip(paintInfo, adjustedPaintOffset);
-@@ -2996,6 +3040,8 @@
+@@ -2996,6 +3041,8 @@
      // sit above the background/border.
      if (hasOverflowClip() && style()->visibility() == VISIBLE && (phase == PaintPhaseBlockBackground || phase == PaintPhaseChildBlockBackground) && paintInfo.shouldPaintWithinRoot(this) && !paintInfo.paintRootBackgroundOnly())
          layer()->paintOverflowControls(paintInfo.context, roundedIntPoint(adjustedPaintOffset), paintInfo.rect);
@@ -2610,13 +2621,13 @@ diff -Naur a/Source/WebKit/qt/WebCoreSupport/QWebFrameAdapter.cpp b/Source/WebKi
  void QWebFrameAdapter::renderFrameExtras(WebCore::GraphicsContext* context, int layers, const QRegion& clip)
 diff -Naur a/Source/WebKit/qt/WebCoreSupport/TextureMapperLayerClientQt.cpp b/Source/WebKit/qt/WebCoreSupport/TextureMapperLayerClientQt.cpp
 --- a/Source/WebKit/qt/WebCoreSupport/TextureMapperLayerClientQt.cpp	2015-06-05 17:28:16.859913100 -0700
-+++ b/Source/WebKit/qt/WebCoreSupport/TextureMapperLayerClientQt.cpp	2016-04-13 15:15:20.149696636 -0700
++++ b/Source/WebKit/qt/WebCoreSupport/TextureMapperLayerClientQt.cpp	2016-05-09 10:43:45.000000000 -0700
 @@ -22,6 +22,9 @@
  #include "config.h"
  #include "TextureMapperLayerClientQt.h"
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<0)
++#define TDIMASK (1<<2)
 +
  #if USE(ACCELERATED_COMPOSITING)
  
