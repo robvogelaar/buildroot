@@ -1,6 +1,6 @@
 diff -Naur a/Source/JavaScriptCore/bytecode/CodeBlock.cpp b/Source/JavaScriptCore/bytecode/CodeBlock.cpp
---- a/Source/JavaScriptCore/bytecode/CodeBlock.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/JavaScriptCore/bytecode/CodeBlock.cpp	2016-07-01 00:13:51.176401500 -0700
+--- a/Source/JavaScriptCore/bytecode/CodeBlock.cpp	2016-07-06 13:02:43.706445100 -0700
++++ b/Source/JavaScriptCore/bytecode/CodeBlock.cpp	2016-07-11 15:34:06.878734466 -0700
 @@ -86,6 +86,9 @@
      return CodeBlockHash(ownerExecutable()->source(), specializationKind());
  }
@@ -20,15 +20,15 @@ diff -Naur a/Source/JavaScriptCore/bytecode/CodeBlock.cpp b/Source/JavaScriptCor
 +        #ifdef __mips__
 +        asm volatile("move %0, $ra" : "=r"(ra));
 +        #endif
-+        tditrace_ex(TDIMASK, "@S+CodeBlock::sourceCodeOnOneLine() ra=%x", ra);
++        tditrace_ex(TDIMASK, "@S+CodeBlock::sourceCodeOnOneLine()%n", ra);
 +    }
 +
      return reduceWhitespace(sourceCodeForTools());
  }
  
 diff -Naur a/Source/JavaScriptCore/interpreter/Interpreter.cpp b/Source/JavaScriptCore/interpreter/Interpreter.cpp
---- a/Source/JavaScriptCore/interpreter/Interpreter.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/JavaScriptCore/interpreter/Interpreter.cpp	2016-07-01 00:14:26.129421400 -0700
+--- a/Source/JavaScriptCore/interpreter/Interpreter.cpp	2016-07-06 13:02:43.722445100 -0700
++++ b/Source/JavaScriptCore/interpreter/Interpreter.cpp	2016-07-06 13:02:43.722445100 -0700
 @@ -791,6 +791,11 @@
      Interpreter* m_interpreter;
  };
@@ -158,8 +158,8 @@ diff -Naur a/Source/JavaScriptCore/interpreter/Interpreter.cpp b/Source/JavaScri
      return checkedReturn(result);
  }
 diff -Naur a/Source/JavaScriptCore/jit/JIT.cpp b/Source/JavaScriptCore/jit/JIT.cpp
---- a/Source/JavaScriptCore/jit/JIT.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/JavaScriptCore/jit/JIT.cpp	2016-07-01 00:13:26.965487200 -0700
+--- a/Source/JavaScriptCore/jit/JIT.cpp	2016-07-06 13:02:43.722445100 -0700
++++ b/Source/JavaScriptCore/jit/JIT.cpp	2016-07-06 13:02:43.722445100 -0700
 @@ -562,12 +562,25 @@
      }
  }
@@ -210,8 +210,8 @@ diff -Naur a/Source/JavaScriptCore/jit/JIT.cpp b/Source/JavaScriptCore/jit/JIT.c
  }
  
 diff -Naur a/Source/WebCore/dom/ContainerNodeAlgorithms.h b/Source/WebCore/dom/ContainerNodeAlgorithms.h
---- a/Source/WebCore/dom/ContainerNodeAlgorithms.h	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/dom/ContainerNodeAlgorithms.h	2016-07-01 00:00:07.679279400 -0700
+--- a/Source/WebCore/dom/ContainerNodeAlgorithms.h	2016-07-06 13:02:43.722445100 -0700
++++ b/Source/WebCore/dom/ContainerNodeAlgorithms.h	2016-07-06 13:02:43.722445100 -0700
 @@ -29,6 +29,10 @@
  #include "NodeTraversal.h"
  #include <wtf/Assertions.h>
@@ -274,8 +274,8 @@ diff -Naur a/Source/WebCore/dom/ContainerNodeAlgorithms.h b/Source/WebCore/dom/C
  
  #if ENABLE(INSPECTOR)
 diff -Naur a/Source/WebCore/dom/Document.cpp b/Source/WebCore/dom/Document.cpp
---- a/Source/WebCore/dom/Document.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/dom/Document.cpp	2016-06-30 23:59:16.551842200 -0700
+--- a/Source/WebCore/dom/Document.cpp	2015-05-27 11:10:00.978317900 -0700
++++ b/Source/WebCore/dom/Document.cpp	2016-07-06 13:02:43.758445100 -0700
 @@ -167,6 +167,9 @@
  #include <wtf/PassRefPtr.h>
  #include <wtf/text/StringBuffer.h>
@@ -305,8 +305,8 @@ diff -Naur a/Source/WebCore/dom/Document.cpp b/Source/WebCore/dom/Document.cpp
      // detached (for example, by setting display:none in the :hover style), schedule another mouseMove event
      // to check if any other elements ended up under the mouse pointer due to re-layout.
 diff -Naur a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp b/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp
---- a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp	2016-07-01 00:00:54.182348900 -0700
+--- a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp	2015-05-27 11:10:00.978317900 -0700
++++ b/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp	2016-07-06 13:02:43.758445100 -0700
 @@ -58,6 +58,9 @@
  #include "TextMetrics.h"
  #include "TextRun.h"
@@ -403,8 +403,8 @@ diff -Naur a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp b/Source/We
  
  void CanvasRenderingContext2D::strokeText(const String& text, float x, float y)
 diff -Naur a/Source/WebCore/html/canvas/WebGLRenderingContext.cpp b/Source/WebCore/html/canvas/WebGLRenderingContext.cpp
---- a/Source/WebCore/html/canvas/WebGLRenderingContext.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/html/canvas/WebGLRenderingContext.cpp	2016-07-01 00:01:30.335791100 -0700
+--- a/Source/WebCore/html/canvas/WebGLRenderingContext.cpp	2015-06-05 16:52:24.890936700 -0700
++++ b/Source/WebCore/html/canvas/WebGLRenderingContext.cpp	2016-07-06 13:02:43.758445100 -0700
 @@ -84,6 +84,9 @@
  #undef emit
  #endif
@@ -459,8 +459,8 @@ diff -Naur a/Source/WebCore/html/canvas/WebGLRenderingContext.cpp b/Source/WebCo
  }
  
 diff -Naur a/Source/WebCore/loader/cache/CachedScript.cpp b/Source/WebCore/loader/cache/CachedScript.cpp
---- a/Source/WebCore/loader/cache/CachedScript.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/loader/cache/CachedScript.cpp	2016-07-01 00:11:32.751781000 -0700
+--- a/Source/WebCore/loader/cache/CachedScript.cpp	2016-07-06 13:02:43.722445100 -0700
++++ b/Source/WebCore/loader/cache/CachedScript.cpp	2016-07-11 15:34:42.450362081 -0700
 @@ -68,8 +68,19 @@
      return extractMIMETypeFromMediaType(m_response.httpHeaderField("Content-Type")).lower();
  }
@@ -475,7 +475,7 @@ diff -Naur a/Source/WebCore/loader/cache/CachedScript.cpp b/Source/WebCore/loade
 +        #ifdef __mips__
 +        asm volatile("move %0, $ra" : "=r"(ra));
 +        #endif
-+        tditrace_ex(TDIMASK, "@S+CachedScript::script() ra=%x", ra);
++        tditrace_ex(TDIMASK, "@S+CachedScript::script()%n", ra);
 +    }
 +
      ASSERT(!isPurgeable());
@@ -490,15 +490,15 @@ diff -Naur a/Source/WebCore/loader/cache/CachedScript.cpp b/Source/WebCore/loade
 +        #ifdef __mips__
 +        asm volatile("move %0, $ra" : "=r"(ra));
 +        #endif
-+        tditrace_ex(TDIMASK, "@S+CachedScript::destroyDecodedData() ra=%x", ra);
++        tditrace_ex(TDIMASK, "@S+CachedScript::destroyDecodedData()%n", ra);
 +    }
 +
      m_script = String();
      setDecodedSize(0);
      if (!MemoryCache::shouldMakeResourcePurgeableOnEviction() && isSafeToMakePurgeable())
 diff -Naur a/Source/WebCore/loader/TextResourceDecoder.cpp b/Source/WebCore/loader/TextResourceDecoder.cpp
---- a/Source/WebCore/loader/TextResourceDecoder.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/loader/TextResourceDecoder.cpp	2016-07-01 00:11:03.577421600 -0700
+--- a/Source/WebCore/loader/TextResourceDecoder.cpp	2016-07-06 13:02:43.722445100 -0700
++++ b/Source/WebCore/loader/TextResourceDecoder.cpp	2016-07-11 15:34:52.052812275 -0700
 @@ -607,8 +607,19 @@
          && (m_source == DefaultEncoding || (m_source == EncodingFromParentFrame && m_hintEncoding)); 
  }
@@ -513,15 +513,15 @@ diff -Naur a/Source/WebCore/loader/TextResourceDecoder.cpp b/Source/WebCore/load
 +        #ifdef __mips__
 +        asm volatile("move %0, $ra" : "=r"(ra));
 +        #endif
-+        tditrace_ex(TDIMASK, "@S+TextResourceDecoder::decode() %d,ra=%x", len, ra);
++        tditrace_ex(TDIMASK, "@S+TextResourceDecoder::decode() %d%n", len, ra);
 +    }
 +
      size_t lengthOfBOM = 0;
      if (!m_checkedForBOM)
          lengthOfBOM = checkForBOM(data, len);
 diff -Naur a/Source/WebCore/page/Console.cpp b/Source/WebCore/page/Console.cpp
---- a/Source/WebCore/page/Console.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/page/Console.cpp	2016-06-30 23:54:00.737304700 -0700
+--- a/Source/WebCore/page/Console.cpp	2015-05-27 11:10:00.978317900 -0700
++++ b/Source/WebCore/page/Console.cpp	2016-07-06 13:02:43.758445100 -0700
 @@ -156,9 +156,25 @@
      internalAddMessage(page(), ClearMessageType, LogMessageLevel, state, arguments, true);
  }
@@ -550,8 +550,8 @@ diff -Naur a/Source/WebCore/page/Console.cpp b/Source/WebCore/page/Console.cpp
  
  void Console::assertCondition(ScriptState* state, PassRefPtr<ScriptArguments> arguments, bool condition)
 diff -Naur a/Source/WebCore/page/DOMTimer.cpp b/Source/WebCore/page/DOMTimer.cpp
---- a/Source/WebCore/page/DOMTimer.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/page/DOMTimer.cpp	2016-07-01 00:00:21.574482000 -0700
+--- a/Source/WebCore/page/DOMTimer.cpp	2015-05-27 11:10:00.978317900 -0700
++++ b/Source/WebCore/page/DOMTimer.cpp	2016-07-06 13:02:43.758445100 -0700
 @@ -35,6 +35,9 @@
  #include <wtf/HashSet.h>
  #include <wtf/StdLibExtras.h>
@@ -590,8 +590,8 @@ diff -Naur a/Source/WebCore/page/DOMTimer.cpp b/Source/WebCore/page/DOMTimer.cpp
      if (isActive()) {
          double minimumInterval = context->minimumTimerInterval();
 diff -Naur a/Source/WebCore/page/FrameView.cpp b/Source/WebCore/page/FrameView.cpp
---- a/Source/WebCore/page/FrameView.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/page/FrameView.cpp	2016-07-01 00:06:06.389334400 -0700
+--- a/Source/WebCore/page/FrameView.cpp	2015-05-27 11:10:00.978317900 -0700
++++ b/Source/WebCore/page/FrameView.cpp	2016-07-06 13:02:43.758445100 -0700
 @@ -77,6 +77,9 @@
  #include "TextResourceDecoder.h"
  #include "TextStream.h"
@@ -627,8 +627,8 @@ diff -Naur a/Source/WebCore/page/FrameView.cpp b/Source/WebCore/page/FrameView.c
          firePaintRelatedMilestones();
      }
 diff -Naur a/Source/WebCore/platform/graphics/GraphicsContext.cpp b/Source/WebCore/platform/graphics/GraphicsContext.cpp
---- a/Source/WebCore/platform/graphics/GraphicsContext.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/platform/graphics/GraphicsContext.cpp	2016-07-01 00:02:41.244225900 -0700
+--- a/Source/WebCore/platform/graphics/GraphicsContext.cpp	2015-05-27 11:10:00.978317900 -0700
++++ b/Source/WebCore/platform/graphics/GraphicsContext.cpp	2016-07-06 13:02:43.758445100 -0700
 @@ -36,6 +36,9 @@
  
  #include "stdio.h"
@@ -685,8 +685,8 @@ diff -Naur a/Source/WebCore/platform/graphics/GraphicsContext.cpp b/Source/WebCo
  
  void GraphicsContext::drawTiledImage(Image* image, ColorSpace styleColorSpace, const IntRect& destRect, const IntPoint& srcPoint, const IntSize& tileSize, CompositeOperator op, bool useLowQualityScale, BlendMode blendMode)
 diff -Naur a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp
---- a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp	2016-07-01 00:07:56.014568200 -0700
+--- a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp	2015-06-05 16:52:24.954936700 -0700
++++ b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp	2016-07-06 13:02:43.766445100 -0700
 @@ -67,6 +67,9 @@
  #include <BlackBerryPlatformLog.h>
  #endif
@@ -1719,8 +1719,8 @@ diff -Naur a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLComm
  }
  
 diff -Naur a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGL.cpp b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGL.cpp
---- a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGL.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGL.cpp	2016-07-01 00:08:06.019515100 -0700
+--- a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGL.cpp	2015-06-05 16:52:24.946936700 -0700
++++ b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGL.cpp	2016-07-06 13:02:43.766445100 -0700
 @@ -77,10 +77,14 @@
  
  namespace WebCore {
@@ -1784,8 +1784,8 @@ diff -Naur a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGL.cpp
      if (m_attrs.antialias && m_state.boundFBO == m_multisampleFBO) {
          resolveMultisamplingIfNecessary(IntRect(x, y, width, height));
 diff -Naur a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp
---- a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp	2016-07-01 00:08:16.059202600 -0700
+--- a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp	2015-06-05 16:52:24.962936700 -0700
++++ b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp	2016-07-06 13:02:43.766445100 -0700
 @@ -40,17 +40,23 @@
  #endif
  #include "NotImplemented.h"
@@ -1849,8 +1849,8 @@ diff -Naur a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLES.c
  }
  
 diff -Naur a/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp b/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp
---- a/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp	2016-07-01 00:03:52.437745700 -0700
+--- a/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp	2016-04-13 13:51:34.752574900 -0700
++++ b/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp	2016-07-06 13:02:43.766445100 -0700
 @@ -33,6 +33,9 @@
  #include <qpa/qplatformpixmap.h>
  #include <wtf/text/CString.h>
@@ -1964,8 +1964,8 @@ diff -Naur a/Source/WebCore/platform/graphics/qt/GraphicsContext3DQt.cpp b/Sourc
  
  void GraphicsContext3D::paintToCanvas(const unsigned char* imagePixels, int imageWidth, int imageHeight,
 diff -Naur a/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp b/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp
---- a/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp	2016-07-01 00:03:42.864360500 -0700
+--- a/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp	2015-05-27 11:10:00.978317900 -0700
++++ b/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp	2016-07-06 13:02:43.766445100 -0700
 @@ -73,6 +73,9 @@
  #include <QVector>
  #include <wtf/MathExtras.h>
@@ -2102,8 +2102,8 @@ diff -Naur a/Source/WebCore/platform/graphics/qt/GraphicsContextQt.cpp b/Source/
  
  void GraphicsContext::strokeRect(const FloatRect& rect, float lineWidth)
 diff -Naur a/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp b/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp
---- a/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp	2016-07-01 00:04:18.774548800 -0700
+--- a/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp	2016-04-13 13:51:22.547584700 -0700
++++ b/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp	2016-07-06 13:02:43.766445100 -0700
 @@ -293,16 +293,22 @@
      painter->restore();
  }
@@ -2128,8 +2128,8 @@ diff -Naur a/Source/WebCore/platform/graphics/qt/ImageBufferQt.cpp b/Source/WebC
  
  #endif // ACCELERATED_2D_CANVAS
 diff -Naur a/Source/WebCore/platform/graphics/qt/ImageQt.cpp b/Source/WebCore/platform/graphics/qt/ImageQt.cpp
---- a/Source/WebCore/platform/graphics/qt/ImageQt.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/platform/graphics/qt/ImageQt.cpp	2016-07-01 00:03:27.235702700 -0700
+--- a/Source/WebCore/platform/graphics/qt/ImageQt.cpp	2015-05-27 11:10:00.978317900 -0700
++++ b/Source/WebCore/platform/graphics/qt/ImageQt.cpp	2016-07-06 13:02:43.766445100 -0700
 @@ -53,6 +53,9 @@
  
  #include <math.h>
@@ -2167,8 +2167,8 @@ diff -Naur a/Source/WebCore/platform/graphics/qt/ImageQt.cpp b/Source/WebCore/pl
          imageObserver()->didDraw(this);
  }
 diff -Naur a/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp b/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp
---- a/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp	2016-07-01 00:06:53.130095200 -0700
+--- a/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp	2015-05-27 11:10:00.978317900 -0700
++++ b/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp	2016-07-06 13:02:43.770445100 -0700
 @@ -522,11 +522,17 @@
          m_private->copyFromTexture(texture, sourceRect);
  }
@@ -2188,8 +2188,8 @@ diff -Naur a/Source/WebCore/platform/graphics/surfaces/qt/GraphicsSurfaceEGL.cpp
  
  uint32_t GraphicsSurface::platformFrontBuffer() const
 diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperGL.cpp b/Source/WebCore/platform/graphics/texmap/TextureMapperGL.cpp
---- a/Source/WebCore/platform/graphics/texmap/TextureMapperGL.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/platform/graphics/texmap/TextureMapperGL.cpp	2016-07-01 00:04:36.985779300 -0700
+--- a/Source/WebCore/platform/graphics/texmap/TextureMapperGL.cpp	2016-04-13 13:51:56.611880900 -0700
++++ b/Source/WebCore/platform/graphics/texmap/TextureMapperGL.cpp	2016-07-06 13:02:43.770445100 -0700
 @@ -67,6 +67,9 @@
  #define GL_UNPACK_SKIP_ROWS 0x0CF3
  #endif
@@ -2237,8 +2237,8 @@ diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperGL.cpp b/Sourc
  
  BitmapTextureGL::BitmapTextureGL(TextureMapperGL* textureMapper)
 diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp
---- a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp	2016-07-01 00:04:52.207852900 -0700
+--- a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp	2015-05-27 11:10:00.978317900 -0700
++++ b/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp	2016-07-06 13:02:43.770445100 -0700
 @@ -82,14 +82,21 @@
          sortByZOrder(m_children);
  }
@@ -2488,8 +2488,8 @@ diff -Naur a/Source/WebCore/platform/graphics/texmap/TextureMapperLayer.cpp b/So
  
  bool TextureMapperLayer::isAncestorFixedToViewport() const
 diff -Naur a/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp b/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp
---- a/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp	2016-07-01 00:02:00.852300200 -0700
+--- a/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp	2015-05-27 11:10:00.978317900 -0700
++++ b/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp	2016-07-06 13:02:43.770445100 -0700
 @@ -42,6 +42,9 @@
  #include "PlatformInstrumentation.h"
  #include <wtf/PassOwnPtr.h>
@@ -2515,8 +2515,8 @@ diff -Naur a/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp b/
      }
      return &frame;
 diff -Naur a/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp b/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp
---- a/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp	2016-07-01 00:02:14.699036500 -0700
+--- a/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp	2015-05-27 11:10:00.994317900 -0700
++++ b/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp	2016-07-06 13:02:43.770445100 -0700
 @@ -50,6 +50,9 @@
  #include "qcms.h"
  #endif
@@ -2542,9 +2542,9 @@ diff -Naur a/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp b/So
      }
      return &frame;
 diff -Naur a/Source/WebCore/platform/text/TextCodecUTF8.cpp b/Source/WebCore/platform/text/TextCodecUTF8.cpp
---- a/Source/WebCore/platform/text/TextCodecUTF8.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/platform/text/TextCodecUTF8.cpp	2016-07-01 00:12:40.482887000 -0700
-@@ -260,12 +260,32 @@
+--- a/Source/WebCore/platform/text/TextCodecUTF8.cpp	2016-07-06 13:02:43.722445100 -0700
++++ b/Source/WebCore/platform/text/TextCodecUTF8.cpp	2016-07-11 15:36:04.010925539 -0700
+@@ -260,12 +260,31 @@
  
      return false;
  }
@@ -2558,16 +2558,15 @@ diff -Naur a/Source/WebCore/platform/text/TextCodecUTF8.cpp b/Source/WebCore/pla
 +
  String TextCodecUTF8::decode(const char* bytes, size_t length, bool flush, bool stopOnError, bool& sawError)
  {
-+    unsigned int ra = 0;
-+    #ifdef __mips__
-+    asm volatile("move %0, $ra" : "=r"(ra));
-+    #endif
-+
 +    if ((tditrace_ex != NULL) && bytes) {
++      unsigned int ra = 0;
++      #ifdef __mips__
++      asm volatile("move %0, $ra" : "=r"(ra));
++      #endif
 +      char s[MAXSTRLEN + 1];
 +      strncpy(s, (const char*)bytes, MIN(MAXSTRLEN, length));
 +      s[MIN(MAXSTRLEN, length)] = '\0';
-+      tditrace_ex(TDIMASK, "@S+TextCodecUTF8::decode() %d [%s],ra=%x", length, s, ra);
++      tditrace_ex(TDIMASK, "@S+TextCodecUTF8::decode() %d [%s]%n", length, s, ra);
 +      tditrace_ex(TDIMASK, "@A+TextCodecUTF8::decode() %d", length);
 +    }
 +
@@ -2578,7 +2577,7 @@ diff -Naur a/Source/WebCore/platform/text/TextCodecUTF8.cpp b/Source/WebCore/pla
      StringBuffer<LChar> buffer(m_partialSequenceSize + length);
  
      const uint8_t* source = reinterpret_cast<const uint8_t*>(bytes);
-@@ -342,9 +362,15 @@
+@@ -342,9 +361,14 @@
  
      buffer.shrink(destination - buffer.characters());
  
@@ -2588,13 +2587,12 @@ diff -Naur a/Source/WebCore/platform/text/TextCodecUTF8.cpp b/Source/WebCore/pla
  
  upConvertTo16Bit:
 +    
-+
 +    if ((tditrace_ex != NULL) && bytes) tditrace_ex(TDIMASK, "@A+TextCodecUTF8::decode()16 %d", length);
 +
      StringBuffer<UChar> buffer16(m_partialSequenceSize + length);
  
      UChar* destination16 = buffer16.characters();
-@@ -417,6 +443,9 @@
+@@ -417,6 +441,9 @@
      } while (flush && m_partialSequenceSize);
      
      buffer16.shrink(destination16 - buffer16.characters());
@@ -2605,8 +2603,8 @@ diff -Naur a/Source/WebCore/platform/text/TextCodecUTF8.cpp b/Source/WebCore/pla
      return String::adopt(buffer16);
  }
 diff -Naur a/Source/WebCore/rendering/RenderBlock.cpp b/Source/WebCore/rendering/RenderBlock.cpp
---- a/Source/WebCore/rendering/RenderBlock.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/rendering/RenderBlock.cpp	2016-06-30 23:56:33.435026200 -0700
+--- a/Source/WebCore/rendering/RenderBlock.cpp	2015-05-27 11:10:00.994317900 -0700
++++ b/Source/WebCore/rendering/RenderBlock.cpp	2016-07-06 13:02:43.786445100 -0700
 @@ -65,11 +65,15 @@
  #include <wtf/StackStats.h>
  #include <wtf/TemporaryChange.h>
@@ -2691,8 +2689,8 @@ diff -Naur a/Source/WebCore/rendering/RenderBlock.cpp b/Source/WebCore/rendering
  
  void RenderBlock::paintColumnRules(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
 diff -Naur a/Source/WebCore/rendering/RenderBox.cpp b/Source/WebCore/rendering/RenderBox.cpp
---- a/Source/WebCore/rendering/RenderBox.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/rendering/RenderBox.cpp	2016-06-30 23:57:18.384198300 -0700
+--- a/Source/WebCore/rendering/RenderBox.cpp	2015-05-27 11:10:00.998317900 -0700
++++ b/Source/WebCore/rendering/RenderBox.cpp	2016-07-06 13:02:43.786445100 -0700
 @@ -61,6 +61,9 @@
  #include "RenderLayerCompositor.h"
  #endif
@@ -2754,8 +2752,8 @@ diff -Naur a/Source/WebCore/rendering/RenderBox.cpp b/Source/WebCore/rendering/R
  
  bool RenderBox::getBackgroundPaintedExtent(LayoutRect& paintedExtent) const
 diff -Naur a/Source/WebCore/rendering/RenderImage.cpp b/Source/WebCore/rendering/RenderImage.cpp
---- a/Source/WebCore/rendering/RenderImage.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/rendering/RenderImage.cpp	2016-06-30 23:56:16.858796900 -0700
+--- a/Source/WebCore/rendering/RenderImage.cpp	2015-05-27 11:10:00.998317900 -0700
++++ b/Source/WebCore/rendering/RenderImage.cpp	2016-07-06 13:02:43.786445100 -0700
 @@ -47,6 +47,9 @@
  #include "SVGImage.h"
  #include <wtf/StackStats.h>
@@ -2776,8 +2774,8 @@ diff -Naur a/Source/WebCore/rendering/RenderImage.cpp b/Source/WebCore/rendering
      
      if (paintInfo.phase == PaintPhaseOutline)
 diff -Naur a/Source/WebCore/rendering/RenderLayerBacking.cpp b/Source/WebCore/rendering/RenderLayerBacking.cpp
---- a/Source/WebCore/rendering/RenderLayerBacking.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/rendering/RenderLayerBacking.cpp	2016-06-30 23:59:41.173584900 -0700
+--- a/Source/WebCore/rendering/RenderLayerBacking.cpp	2015-05-27 11:10:00.998317900 -0700
++++ b/Source/WebCore/rendering/RenderLayerBacking.cpp	2016-07-06 13:02:43.790445100 -0700
 @@ -2009,6 +2009,9 @@
      context.restore();
  }
@@ -2855,8 +2853,8 @@ diff -Naur a/Source/WebCore/rendering/RenderLayerBacking.cpp b/Source/WebCore/re
      if (animatedProperty != AnimatedPropertyInvalid)
          m_graphicsLayer->removeAnimation(GraphicsLayer::animationNameForTransition(animatedProperty));
 diff -Naur a/Source/WebCore/rendering/RenderLayer.cpp b/Source/WebCore/rendering/RenderLayer.cpp
---- a/Source/WebCore/rendering/RenderLayer.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/rendering/RenderLayer.cpp	2016-06-30 23:57:02.389308100 -0700
+--- a/Source/WebCore/rendering/RenderLayer.cpp	2015-05-27 11:10:00.998317900 -0700
++++ b/Source/WebCore/rendering/RenderLayer.cpp	2016-07-06 13:02:43.790445100 -0700
 @@ -126,6 +126,9 @@
  #include "ValidatedCustomFilterOperation.h"
  #endif
@@ -2967,8 +2965,8 @@ diff -Naur a/Source/WebCore/rendering/RenderLayer.cpp b/Source/WebCore/rendering
  
  void RenderLayer::paintLayerContentsAndReflection(GraphicsContext* context, const LayerPaintingInfo& paintingInfo, PaintLayerFlags paintFlags)
 diff -Naur a/Source/WebCore/rendering/RenderVideo.cpp b/Source/WebCore/rendering/RenderVideo.cpp
---- a/Source/WebCore/rendering/RenderVideo.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebCore/rendering/RenderVideo.cpp	2016-06-30 23:55:23.151225600 -0700
+--- a/Source/WebCore/rendering/RenderVideo.cpp	2015-05-27 11:10:00.998317900 -0700
++++ b/Source/WebCore/rendering/RenderVideo.cpp	2016-07-06 13:02:43.790445100 -0700
 @@ -44,6 +44,9 @@
  #include "RenderFullScreen.h"
  #endif
@@ -2989,20 +2987,19 @@ diff -Naur a/Source/WebCore/rendering/RenderVideo.cpp b/Source/WebCore/rendering
      if (Frame* frame = this->frame())
          page = frame->page();
 diff -Naur a/Source/WebKit/qt/WebCoreSupport/QWebFrameAdapter.cpp b/Source/WebKit/qt/WebCoreSupport/QWebFrameAdapter.cpp
---- a/Source/WebKit/qt/WebCoreSupport/QWebFrameAdapter.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebKit/qt/WebCoreSupport/QWebFrameAdapter.cpp	2016-07-01 00:10:22.353323400 -0700
-@@ -65,6 +65,10 @@
+--- a/Source/WebKit/qt/WebCoreSupport/QWebFrameAdapter.cpp	2015-06-05 16:52:24.994936700 -0700
++++ b/Source/WebKit/qt/WebCoreSupport/QWebFrameAdapter.cpp	2016-07-11 16:40:30.206906524 -0700
+@@ -65,6 +65,9 @@
  #include <QFileInfo>
  #include <QNetworkRequest>
  
 +extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
 +#define TDIMASK (0x800)
 +
-+
  using namespace WebCore;
  
  static inline ResourceRequestCachePolicy cacheLoadControlToCachePolicy(uint cacheLoadControl)
-@@ -508,6 +512,9 @@
+@@ -508,6 +511,9 @@
      if (vector.isEmpty())
          return;
  
@@ -3012,7 +3009,7 @@ diff -Naur a/Source/WebKit/qt/WebCoreSupport/QWebFrameAdapter.cpp b/Source/WebKi
      WebCore::FrameView* view = frame->view();
      view->updateLayoutAndStyleIfNeededRecursive();
  
-@@ -550,6 +557,8 @@
+@@ -550,6 +556,8 @@
          context.restore();
      }
  #endif
@@ -3022,8 +3019,8 @@ diff -Naur a/Source/WebKit/qt/WebCoreSupport/QWebFrameAdapter.cpp b/Source/WebKi
  
  void QWebFrameAdapter::renderFrameExtras(WebCore::GraphicsContext* context, int layers, const QRegion& clip)
 diff -Naur a/Source/WebKit/qt/WebCoreSupport/TextureMapperLayerClientQt.cpp b/Source/WebKit/qt/WebCoreSupport/TextureMapperLayerClientQt.cpp
---- a/Source/WebKit/qt/WebCoreSupport/TextureMapperLayerClientQt.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebKit/qt/WebCoreSupport/TextureMapperLayerClientQt.cpp	2016-07-01 00:05:33.846546600 -0700
+--- a/Source/WebKit/qt/WebCoreSupport/TextureMapperLayerClientQt.cpp	2015-06-05 17:28:16.859913100 -0700
++++ b/Source/WebKit/qt/WebCoreSupport/TextureMapperLayerClientQt.cpp	2016-07-06 13:02:43.790445100 -0700
 @@ -22,6 +22,9 @@
  #include "config.h"
  #include "TextureMapperLayerClientQt.h"
@@ -3080,8 +3077,8 @@ diff -Naur a/Source/WebKit/qt/WebCoreSupport/TextureMapperLayerClientQt.cpp b/So
  
  #endif
 diff -Naur a/Source/WebKit/qt/WidgetApi/qgraphicswebview.cpp b/Source/WebKit/qt/WidgetApi/qgraphicswebview.cpp
---- a/Source/WebKit/qt/WidgetApi/qgraphicswebview.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebKit/qt/WidgetApi/qgraphicswebview.cpp	2016-07-01 00:09:33.990604600 -0700
+--- a/Source/WebKit/qt/WidgetApi/qgraphicswebview.cpp	2015-06-05 17:28:50.419309800 -0700
++++ b/Source/WebKit/qt/WidgetApi/qgraphicswebview.cpp	2016-07-06 13:02:43.790445100 -0700
 @@ -43,6 +43,9 @@
  #include <QX11Info>
  #endif
@@ -3117,8 +3114,8 @@ diff -Naur a/Source/WebKit/qt/WidgetApi/qgraphicswebview.cpp b/Source/WebKit/qt/
  
  /*! \reimp
 diff -Naur a/Source/WebKit/qt/WidgetApi/qwebframe.cpp b/Source/WebKit/qt/WidgetApi/qwebframe.cpp
---- a/Source/WebKit/qt/WidgetApi/qwebframe.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WebKit/qt/WidgetApi/qwebframe.cpp	2016-07-01 00:09:12.902557900 -0700
+--- a/Source/WebKit/qt/WidgetApi/qwebframe.cpp	2015-06-05 17:29:20.608189300 -0700
++++ b/Source/WebKit/qt/WidgetApi/qwebframe.cpp	2016-07-06 13:02:43.790445100 -0700
 @@ -41,6 +41,10 @@
  #include <qnetworkrequest.h>
  #include <qregion.h>
@@ -3146,8 +3143,8 @@ diff -Naur a/Source/WebKit/qt/WidgetApi/qwebframe.cpp b/Source/WebKit/qt/WidgetA
  
  /*!
 diff -Naur a/Source/WTF/wtf/FastMalloc.cpp b/Source/WTF/wtf/FastMalloc.cpp
---- a/Source/WTF/wtf/FastMalloc.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WTF/wtf/FastMalloc.cpp	2016-07-01 11:09:25.258394418 -0700
+--- a/Source/WTF/wtf/FastMalloc.cpp	2016-07-06 13:02:43.722445100 -0700
++++ b/Source/WTF/wtf/FastMalloc.cpp	2016-07-11 15:36:50.522548205 -0700
 @@ -117,6 +117,9 @@
  #define USE_BACKGROUND_THREAD_TO_SCAVENGE_MEMORY 1
  #endif
@@ -3169,7 +3166,7 @@ diff -Naur a/Source/WTF/wtf/FastMalloc.cpp b/Source/WTF/wtf/FastMalloc.cpp
 +            #ifdef __mips__
 +            asm volatile("move %0, $ra" : "=r"(ra));
 +            #endif
-+            tditrace_ex(TDIMASK, "fm %d,ra=%x", size, ra);
++            tditrace_ex(TDIMASK, "fm%n%n", ra, size);
 +        }
 +    }
 +
@@ -3187,7 +3184,7 @@ diff -Naur a/Source/WTF/wtf/FastMalloc.cpp b/Source/WTF/wtf/FastMalloc.cpp
 +            #ifdef __mips__
 +            asm volatile("move %0, $ra" : "=r"(ra));
 +            #endif
-+            tditrace_ex(TDIMASK, "fc %d,ra=%x", n * elem_size, ra);
++            tditrace_ex(TDIMASK, "fc%n%n", ra, n * elem_size);
 +        }
 +    }
 +
@@ -3205,7 +3202,7 @@ diff -Naur a/Source/WTF/wtf/FastMalloc.cpp b/Source/WTF/wtf/FastMalloc.cpp
 +            #ifdef __mips__
 +            asm volatile("move %0, $ra" : "=r"(ra));
 +            #endif
-+            if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "fr %d,ra=%x", new_size, ra);
++            if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "fr%n%n", ra, new_size);
 +        }
 +    }
 +
@@ -3213,8 +3210,8 @@ diff -Naur a/Source/WTF/wtf/FastMalloc.cpp b/Source/WTF/wtf/FastMalloc.cpp
      fastMallocValidate(old_ptr);
  #endif
 diff -Naur a/Source/WTF/wtf/OSAllocatorPosix.cpp b/Source/WTF/wtf/OSAllocatorPosix.cpp
---- a/Source/WTF/wtf/OSAllocatorPosix.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WTF/wtf/OSAllocatorPosix.cpp	2016-07-01 11:12:05.894726942 -0700
+--- a/Source/WTF/wtf/OSAllocatorPosix.cpp	2016-07-06 13:02:43.722445100 -0700
++++ b/Source/WTF/wtf/OSAllocatorPosix.cpp	2016-07-11 15:37:13.025314398 -0700
 @@ -44,8 +44,20 @@
  }
  #endif // CPU(MIPS)
@@ -3230,7 +3227,7 @@ diff -Naur a/Source/WTF/wtf/OSAllocatorPosix.cpp b/Source/WTF/wtf/OSAllocatorPos
 +        #ifdef __mips__
 +        asm volatile("move %0, $ra" : "=r"(ra));
 +        #endif
-+        tditrace_ex(TDIMASK, "ru %d,ra=%x", bytes, ra);
++        tditrace_ex(TDIMASK, "ru%n%n", ra, bytes);
 +    }
 +
  #if OS(QNX)
@@ -3246,7 +3243,7 @@ diff -Naur a/Source/WTF/wtf/OSAllocatorPosix.cpp b/Source/WTF/wtf/OSAllocatorPos
 +        #ifdef __mips__
 +        asm volatile("move %0, $ra" : "=r"(ra));
 +        #endif
-+        tditrace_ex(TDIMASK, "rc %d,ra=%x", bytes, ra);
++        tditrace_ex(TDIMASK, "rc%n%n", ra, bytes);
 +    }
 +
      // All POSIX reservations start out logically committed.
@@ -3261,15 +3258,15 @@ diff -Naur a/Source/WTF/wtf/OSAllocatorPosix.cpp b/Source/WTF/wtf/OSAllocatorPos
 +        #ifdef __mips__
 +        asm volatile("move %0, $ra" : "=r"(ra));
 +        #endif
-+        tditrace_ex(TDIMASK, "rd %d,ra=%x", bytes, ra);
++        tditrace_ex(TDIMASK, "rd%n%n", ra, bytes);
 +    }
 +
      int result = munmap(address, bytes);
      if (result == -1)
          CRASH();
 diff -Naur a/Source/WTF/wtf/PageAllocationAligned.cpp b/Source/WTF/wtf/PageAllocationAligned.cpp
---- a/Source/WTF/wtf/PageAllocationAligned.cpp	2015-12-28 01:38:52.000000000 -0800
-+++ b/Source/WTF/wtf/PageAllocationAligned.cpp	2016-07-01 11:12:45.638553795 -0700
+--- a/Source/WTF/wtf/PageAllocationAligned.cpp	2016-07-06 13:02:43.722445100 -0700
++++ b/Source/WTF/wtf/PageAllocationAligned.cpp	2016-07-11 15:37:24.540800166 -0700
 @@ -26,10 +26,22 @@
  #include "config.h"
  #include "PageAllocationAligned.h"
@@ -3287,7 +3284,7 @@ diff -Naur a/Source/WTF/wtf/PageAllocationAligned.cpp b/Source/WTF/wtf/PageAlloc
 +        #ifdef __mips__
 +        asm volatile("move %0, $ra" : "=r"(ra));
 +        #endif
-+        tditrace_ex(TDIMASK, "pa %d,ra=%x", (int)size, ra);
++        tditrace_ex(TDIMASK, "pa%n%n", ra, size);
 +    }
 +
      ASSERT(isPageAligned(size));
