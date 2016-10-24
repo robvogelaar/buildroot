@@ -1,43 +1,31 @@
---- a/rockford/middleware/v3d/vcfw/rtos/rtos_abstract_mem.c	2016-02-18 20:06:27.598912025 -0800
-+++ b/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c	2016-02-24 16:27:00.278233935 -0800
-@@ -710,6 +710,10 @@
+diff -Naur a/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c b/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c
+--- a/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c	2016-03-16 15:25:07.077006662 -0700
++++ b/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c	2016-10-24 14:51:07.912716400 -0700
+@@ -710,6 +710,11 @@
     - MEM_HANDLE_INVALID is returned.
  */
  
-+extern void tditrace_ex(const char* format, ...) __attribute__((weak));
-+#define TDIMASK (1<<16)
++extern void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASKGPU (0x80000000) /* GPU */
++#define TDIMASKGPUxxx (0x40000000) /* GPUxxx */
 +#include <malloc.h>
 +
  MEM_HANDLE_T mem_alloc_ex(
     uint32_t size,
     uint32_t align,
-@@ -721,6 +725,25 @@
+@@ -717,6 +722,11 @@
+    const char *desc,
+    mem_compact_mode_t mode)
+ {
++   unsigned int ra = 0;
++   #ifdef __mips__
++   asm volatile("move %0, $ra" : "=r"(ra));
++   #endif
++
+    MEM_HEADER_T * h;
  
     UNUSED(mode);
- 
-+   if (tditrace_ex != NULL) {
-+      unsigned int ra = 0;
-+      #ifdef __mips__
-+      asm volatile("move %0, $ra" : "=r"(ra));
-+      #endif
-+      char text[256];
-+      int i;
-+      strcpy(text, desc);
-+      for (i = 0; i < strlen(text); i++) {
-+         if (text[i] == ' ') text[i] = '_';
-+      }
-+      if (flags & MEM_FLAG_DIRECT) {
-+         tditrace_ex(TDIMASK, "@E+gpu_mem_alloc %s %d ra=%x", text, size, ra);
-+         tditrace_ex(TDIMASK, "gpu_mem_alloc~%d", size);
-+      } else {
-+         tditrace_ex(TDIMASK, "gpu_mem_alloc*~%d", size);
-+      }
-+   }
-+
-    assert(is_power_of_2(align));
-    assert(!(flags & ~MEM_FLAG_ALL));
-    assert((flags & MEM_FLAG_RESIZEABLE) || !(flags & MEM_FLAG_HINT_GROW));
-@@ -740,6 +763,26 @@
+@@ -740,6 +750,32 @@
     }
  
     init_header(h, size, align, flags, desc);
@@ -49,88 +37,86 @@
 +      for (i = 0; i < strlen(text); i++) {
 +         if (text[i] == ' ') text[i] = '_';
 +      }
-+      if (flags & MEM_FLAG_DIRECT) {
-+          tditrace_ex(TDIMASK, "gpu_free~%d", g_mgr.memInterface->GetInfo(g_mgr.memInterface->context, BEGL_MemFree));
-+      } else {
-+          struct mallinfo mi;
-+          mi = mallinfo();
-+          tditrace_ex(TDIMASK, "gpu_mi.arena~%d", mi.arena);
-+      }
++
 +      if (h->ptr == NULL) {
-+         tditrace_ex(TDIMASK, "@E+gpu_mem_alloc_fail %s %d", text, size);
++         tditrace_ex(TDIMASKGPU, "@E+gpu_alloc_fail %s%n%n", text, ra, size);
++      } else {
++         if (flags & MEM_FLAG_DIRECT) {
++            tditrace_ex(TDIMASKGPUxxx, "@E+gpu_alloc %s%n%n%n", text, ra, size, h->ptr);
++            tditrace_ex(TDIMASKGPUxxx, "gpu_alloc~%d", size);
++            tditrace_ex(TDIMASKGPU, "GPU~%d", g_mgr.memInterface->GetInfo(g_mgr.memInterface->context, BEGL_MemFree));
++         } else {
++            tditrace_ex(TDIMASKGPUxxx, "@E+gpu_alloc* %s%n%n%n", text, ra, size, h->ptr);
++            tditrace_ex(TDIMASKGPUxxx, "gpu_alloc*~%d", size);
++            //struct mallinfo mi;
++            //mi = mallinfo();
++            //tditrace_ex(TDIMASK, "gpu_mi.arena~%d", mi.arena);
++         }
 +      }
 +   }
 +
     if ((h->size > 0) && (h->ptr == NULL))
     {
        free(h);
-@@ -824,6 +867,18 @@
+@@ -821,6 +857,11 @@
+ 
+ void mem_release_inner(MEM_HEADER_T *h)
+ {
++   unsigned int ra = 0;
++   #ifdef __mips__
++   asm volatile("move %0, $ra" : "=r"(ra));
++   #endif
++
     /* put me back in if things start to go wrong */
     /*assert((handle != MEM_ZERO_SIZE_HANDLE) && (handle != MEM_EMPTY_STRING_HANDLE));*/
  
-+   if (tditrace_ex != NULL) {
-+      unsigned int ra = 0;
-+      #ifdef __mips__
-+      asm volatile("move %0, $ra" : "=r"(ra));
-+      #endif
-+      if (h->flags & MEM_FLAG_DIRECT) {
-+         tditrace_ex(TDIMASK, "@E+gpu_mem_release ra=%x", ra);
-+      } else {
-+         //tditrace_ex(TDIMASK, "@E+gpu_mem_release* ra=%x", ra);
-+      }
-+   }
-+
-    if (h->term)
-       h->term(h->ptr, h->size);
- 
-@@ -845,6 +900,16 @@
+@@ -845,6 +886,18 @@
        }
     }
     free(h);
 +
 +   if (tditrace_ex != NULL) {
 +      if (h->flags & MEM_FLAG_DIRECT) {
-+         if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "gpu_free~%d", g_mgr.memInterface->GetInfo(g_mgr.memInterface->context, BEGL_MemFree));
++         tditrace_ex(TDIMASKGPUxxx, "@E+gpu_release%n", ra);
++         tditrace_ex(TDIMASKGPU, "GPU~%d", g_mgr.memInterface->GetInfo(g_mgr.memInterface->context, BEGL_MemFree));
 +      } else {
-+         struct mallinfo mi;
-+         mi = mallinfo();
-+         tditrace_ex(TDIMASK, "gpu_mi.arena~%d", mi.arena);
++         tditrace_ex(TDIMASKGPUxxx, "@E+gpu_release*%n", ra);
++         //struct mallinfo mi;
++         //mi = mallinfo();
++         //tditrace_ex(TDIMASK, "gpu_mi.arena~%d", mi.arena);
 +      }
 +   }
  }
  
  /*
-@@ -1120,6 +1185,19 @@
- 
-    UNUSED(mode);
- 
-+   if (tditrace_ex != NULL) {
-+      unsigned int ra = 0;
-+      #ifdef __mips__
-+      asm volatile("move %0, $ra" : "=r"(ra));
-+      #endif
-+      if (h->flags & MEM_FLAG_DIRECT) {
-+         tditrace_ex(TDIMASK, "@E+gpu_mem_resize %d %x", size, ra);
-+         tditrace_ex(TDIMASK, "gpu_mem_resize~%d", size);
-+      } else {
-+         tditrace_ex(TDIMASK, "gpu_mem_resize*~%d", size);
-+      }
-+   }
+@@ -1114,6 +1167,12 @@
+    uint32_t size,
+    mem_compact_mode_t mode)
+ {
 +
-    assert(h->magic == MAGIC);
-    assert(h->ref_count != 0);
- #ifdef BCG_VC4_DEFRAG
-@@ -1185,6 +1263,16 @@
++   unsigned int ra = 0;
++   #ifdef __mips__
++   asm volatile("move %0, $ra" : "=r"(ra));
++   #endif
++
+    int res;
+    MEM_HEADER_T *h = (MEM_HEADER_T *)handle;
+    void * nptr;
+@@ -1185,6 +1244,20 @@
  
     vcos_mutex_unlock((VCOS_MUTEX_T *)&g_mgr.mh);
  
 +   if (tditrace_ex != NULL) {
 +      if (h->flags & MEM_FLAG_DIRECT) {
-+         tditrace_ex(TDIMASK, "gpu_free~%d", g_mgr.memInterface->GetInfo(g_mgr.memInterface->context, BEGL_MemFree));
++         tditrace_ex(TDIMASKGPUxxx, "@E+gpu_resize %d%n", size, ra);
++         //tditrace_ex(TDIMASK, "gpu_resize~%d", size);
++         tditrace_ex(TDIMASKGPU, "GPU~%d", g_mgr.memInterface->GetInfo(g_mgr.memInterface->context, BEGL_MemFree));
 +      } else {
-+         struct mallinfo mi;
-+         mi = mallinfo();
-+         tditrace_ex(TDIMASK, "gpu_mi.arena~%d", mi.arena);
++         tditrace_ex(TDIMASKGPUxxx, "@E+gpu_resize* %d%n", size, ra);
++         //tditrace_ex(TDIMASK, "gpu_resize*~%d", size);
++         //struct mallinfo mi;
++         //mi = mallinfo();
++         //tditrace_ex(TDIMASK, "gpu_mi.arena~%d", mi.arena);
 +      }
 +   }
 +

@@ -3,30 +3,17 @@
 # qtpbase
 #
 ################################################################################
-
-############
-#
-# SDK3.0
-#
-# http://download.qt.io/official_releases/qt/5.3/5.3.2/submodules/qtbase-opensource-src-5.3.2.tar.xz
-#
-# SDK3.0.2.1
-#
-# http://download.qt.io/official_releases/qt/5.4/5.4.1/submodules/qtbase-opensource-src-5.4.1.tar.xz
 #
 ## find output/target -name '*Qt*' | xargs rm -rf && find output/host -name '*Qt*' | xargs rm -rf
 #
-# SDK3.1.7 / 3.1.9:
-#
-# 
 #
 ############
 
 QTPBASE_VERSION_MAJOR = 5.4
-QTPBASE_VERSION = 5.4.1
+QTPBASE_VERSION = 5.4.2
+
 QTPBASE_SITE = http://download.qt-project.org/official_releases/qt/$(QTPBASE_VERSION_MAJOR)/$(QTPBASE_VERSION)/submodules/
 QTPBASE_SOURCE = qtbase-opensource-src-$(QTPBASE_VERSION).tar.xz
-
 
 QTPBASE_DEPENDENCIES = host-pkgconf zlib pcre libgles libegl dbus icu libpng jpeg sqlite
 
