@@ -1,0 +1,35 @@
+From 0afd5d8888cdf7f86abe911b3cd1146ca38d5fbe Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Fri, 18 Mar 2016 06:50:43 -0700
+Subject: [PATCH] v3d/driver/middleware/khronos/glxx/glxx_texture.c: backport
+ fix from 15.3
+
+Fixes colours when running qtwebkit etc. The same fix is also used in
+Metrological Buildroot:
+
+  https://github.com/Metrological/buildroot-wpe/commit/0930319e0a20f1351de5bc86662f327b94cc508a
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ rockford/middleware/v3d/driver/middleware/khronos/glxx/glxx_texture.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/rockford/middleware/v3d/driver/middleware/khronos/glxx/glxx_texture.c b/rockford/middleware/v3d/driver/middleware/khronos/glxx/glxx_texture.c
+index 25acc04..03e4e96 100644
+--- a/rockford/middleware/v3d/driver/middleware/khronos/glxx/glxx_texture.c
++++ b/rockford/middleware/v3d/driver/middleware/khronos/glxx/glxx_texture.c
+@@ -307,7 +307,11 @@ static KHRN_IMAGE_FORMAT_T convert_raster_format(GLenum format, GLenum type)
+ #if GL_EXT_texture_format_BGRA8888
+    case GL_BGRA_EXT:
+       vcos_assert(type == GL_UNSIGNED_BYTE);
++#ifdef BIG_ENDIAN_CPU
+       return BGRA_8888_RSO;
++#else
++      return ARGB_8888_RSO;
++#endif
+ #endif
+ #if GL_APPLE_rgb_422
+    case GL_RGB_422_APPLE:
+-- 
+1.9.1
+

@@ -1,0 +1,29 @@
+From aa034343a6500222451c6da23585309f1801238b Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Wed, 18 Nov 2015 13:37:19 -0800
+Subject: [PATCH] vcos_platform.h: fix timer_t redefinition with musl libc
+
+Add "#if defined __DEFINED_timer_t" test to avoid attempts
+to redefine timer_t when building with musl libc.
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ rockford/middleware/vc5/driver/vcos/pthreads/vcos_platform.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/rockford/middleware/vc5/driver/vcos/pthreads/vcos_platform.h b/rockford/middleware/vc5/driver/vcos/pthreads/vcos_platform.h
+index eb87cf7..c8d81d1 100644
+--- a/rockford/middleware/vc5/driver/vcos/pthreads/vcos_platform.h
++++ b/rockford/middleware/vc5/driver/vcos/pthreads/vcos_platform.h
+@@ -103,7 +103,7 @@ typedef struct
+ 
+ #define VCOS_ONCE_INIT        PTHREAD_ONCE_INIT
+ 
+-#if defined(__arm__) && !defined(_HAVE_TIMER_T) && !defined(ANDROID) && !defined(USE_ANDROID)
++#if defined(__arm__) && !defined(_HAVE_TIMER_T) && !defined(__DEFINED_timer_t) && !defined(ANDROID) && !defined(USE_ANDROID)
+ typedef __timer_t timer_t;
+ #endif
+ typedef struct VCOS_TIMER_T
+-- 
+1.9.1
+

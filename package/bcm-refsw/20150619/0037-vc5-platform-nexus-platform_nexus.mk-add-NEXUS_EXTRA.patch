@@ -1,0 +1,30 @@
+From 9cdddcd740475e4417a7be43726bfc335e444a4f Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Fri, 23 Sep 2016 21:13:19 -0700
+Subject: [PATCH] vc5/platform/nexus/platform_nexus.mk: add NEXUS_EXTRA_LDFLAGS
+ to LDFLAGS
+
+NEXUS_EXTRA_LDFLAGS is used to pass user space specific LDFLAGS,
+including security flags.
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ rockford/middleware/vc5/platform/nexus/platform_nexus.mk | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/rockford/middleware/vc5/platform/nexus/platform_nexus.mk b/rockford/middleware/vc5/platform/nexus/platform_nexus.mk
+index 65bc6ab..9c24d1f 100644
+--- a/rockford/middleware/vc5/platform/nexus/platform_nexus.mk
++++ b/rockford/middleware/vc5/platform/nexus/platform_nexus.mk
+@@ -50,6 +50,8 @@ CFLAGS += -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE
+ 
+ LDFLAGS = -lpthread
+ 
++LDFLAGS += $(NEXUS_EXTRA_LDFLAGS)
++
+ CC = $(B_REFSW_CROSS_COMPILE)gcc $(NEXUS_EXTRA_CFLAGS)
+ C++ = $(B_REFSW_CROSS_COMPILE)g++ $(NEXUS_EXTRA_CFLAGS)
+ 
+-- 
+1.9.1
+

@@ -1,0 +1,29 @@
+From 0415c8c3dc9e69d2c97850646be3cc664675eee7 Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Tue, 24 Nov 2015 19:34:22 -0800
+Subject: [PATCH] rockford/middleware/v3d/platform/nexus/platform_nexus.mk:
+ include NXCLIENT_LDFLAGS
+
+If building libnxpl.so against nxclient then add NXCLIENT_LDFLAGS
+to LDFLAGS.
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ rockford/middleware/v3d/platform/nexus/platform_nexus.mk | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/rockford/middleware/v3d/platform/nexus/platform_nexus.mk b/rockford/middleware/v3d/platform/nexus/platform_nexus.mk
+index 3a5a92b..724da46 100644
+--- a/rockford/middleware/v3d/platform/nexus/platform_nexus.mk
++++ b/rockford/middleware/v3d/platform/nexus/platform_nexus.mk
+@@ -81,6 +81,7 @@ ifeq ($(USE_NXCLIENT),1)
+ include $(NEXUS_TOP)/nxclient/include/nxclient.inc
+ SOURCES += $(NXCLIENT_SOURCES)
+ CFLAGS += $(NXCLIENT_CFLAGS)
++LDFLAGS += $(NXCLIENT_LDFLAGS)
+ else
+ CFLAGS += -DNO_NXCLIENT
+ endif
+-- 
+1.9.1
+

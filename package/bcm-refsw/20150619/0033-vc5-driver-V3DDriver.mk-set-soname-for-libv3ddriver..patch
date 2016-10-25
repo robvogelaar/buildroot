@@ -1,0 +1,26 @@
+From 597a3df4e18f437cb0bd3e82a8e0a93ad5964010 Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Tue, 20 Sep 2016 20:05:19 -0700
+Subject: [PATCH] vc5/driver/V3DDriver.mk: set soname for libv3ddriver.so
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ rockford/middleware/vc5/driver/V3DDriver.mk | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/rockford/middleware/vc5/driver/V3DDriver.mk b/rockford/middleware/vc5/driver/V3DDriver.mk
+index 21e3fdb..65851ca 100644
+--- a/rockford/middleware/vc5/driver/V3DDriver.mk
++++ b/rockford/middleware/vc5/driver/V3DDriver.mk
+@@ -503,7 +503,7 @@ endif
+ $(LIBDIR)/libv3ddriver.so: $(PRE_BUILD_RULES) $(OBJS)
+ 	$(Q)echo Linking ... libv3ddriver.so
+ 	$(Q)mkdir -p $(LIBDIR)
+-	$(Q)$(CC) $(LDFLAGS) -shared -o $(LIBDIR)/libv3ddriver.so $(OBJS)
++	$(Q)$(CC) $(LDFLAGS) -shared -o $(LIBDIR)/libv3ddriver.so -Wl,-soname,libv3ddriver.so $(OBJS)
+ 
+ $(LIBDIR)/libv3ddriver.a: $(PRE_BUILD_RULES) $(OBJS)
+ 	$(Q)echo Archiving ... libv3ddriver.a
+-- 
+1.9.1
+
