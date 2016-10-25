@@ -1,0 +1,49 @@
+From 64a735c2aea030f790bb3c28ca17ea3f6a165f96 Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Wed, 18 Nov 2015 14:06:08 -0800
+Subject: [PATCH] vcos_pthreads.c: define a fallback value for HZ (musl libc
+ fix)
+
+Defining HZ makes no sense for Linux user space code, and it doesn't
+seem to be used for anything much anyway, so if the libc headers don't
+define HZ, use a sensible fallback instead of breaking the build.
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ .../middleware/v3d/driver/interface/vcos/pthreads/vcos_pthreads.c     | 4 ++++
+ rockford/middleware/vc5/driver/vcos/pthreads/vcos_pthreads.c          | 4 ++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/rockford/middleware/v3d/driver/interface/vcos/pthreads/vcos_pthreads.c b/rockford/middleware/v3d/driver/interface/vcos/pthreads/vcos_pthreads.c
+index e2ad53e..5c4f123 100644
+--- a/rockford/middleware/v3d/driver/interface/vcos/pthreads/vcos_pthreads.c
++++ b/rockford/middleware/v3d/driver/interface/vcos/pthreads/vcos_pthreads.c
+@@ -450,6 +450,10 @@ const char ** vcos_get_argv(void)
+ // MAX.
+ uint32_t _vcos_get_ticks_per_second(void)
+ {
++#if ! defined(HZ)
++#define HZ 1000
++#endif
++
+    return HZ;
+ }
+ 
+diff --git a/rockford/middleware/vc5/driver/vcos/pthreads/vcos_pthreads.c b/rockford/middleware/vc5/driver/vcos/pthreads/vcos_pthreads.c
+index 40dace1..d10016f 100644
+--- a/rockford/middleware/vc5/driver/vcos/pthreads/vcos_pthreads.c
++++ b/rockford/middleware/vc5/driver/vcos/pthreads/vcos_pthreads.c
+@@ -589,6 +589,10 @@ const char ** vcos_get_argv(void)
+  */
+ uint32_t _vcos_get_ticks_per_second(void)
+ {
++#if ! defined(HZ)
++#define HZ 1000
++#endif
++
+    return HZ;
+ }
+ 
+-- 
+1.9.1
+

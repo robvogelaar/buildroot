@@ -1,0 +1,48 @@
+BCM972520.patch
+disable-nxclient-linking-cube-application.patch
+nexus-14.4-libipc.patch
+nexus-15.2-snow-workaround.patch
+nexus-hard-float.patch
+V3d_driver_gcc_4_8_2.patch
+
+##  0001-use-immediate-expansion-in-nexus-platform_version.in.patch
+##  0002-rockford-middleware-v3d-driver-interface-vcos-vcos_t.patch
+##  0003-nexus-build-os-linuxuser-os_flags.inc-always-set-B_R.patch
+##  0004-add-various-NEXUS_EXTRA_CFLAGS-etc-ie-sysroot-hooks.patch
+##  0005-nexus-build-os-linuxkernel-os_flags.inc-don-t-add-NE.patch
+##  0006-nexus-build-os-linuxkernel-os_flags.inc-add-NEXUS_KE.patch
+##  0007-nexus-build-os-linuxkernel-os_flags.inc-support-sepa.patch
+##  0008-nexus-build-os-linuxkernel-os_flags.inc-add-nostdinc.patch
+##  0009-DSP_raaga_si.c-include-linux-string.h-when-building-.patch
+##  0010-BSEAV-linux-driver-usermode-Makefile-support-separat.patch
+##  0011-BSEAV-linux-driver-usermode-Makefile-add-nostdinc-to.patch
+##  0012-nexus-nxclient-examples-Makefile-install-apps-in-nxc.patch
+##  0013-rockford-middleware-v3d-driver-V3DDriver.mk-add-lm-t.patch
+##  0014-rockford-middleware-v3d-platform-nexus-platform_nexu.patch
+##  0015-rockford-middleware-vc5-platform-nexus-platform_nexu.patch
+##  0016-vcos_backtrace.c-disable-backtrace-for-musl-libc.patch
+##  0017-vcos_platform.h-fix-timer_t-redefinition-with-musl-l.patch
+##  0018-vcos_platform.h-use-PTHREAD_MUTEX_RECURSIVE-by-defau.patch
+##  0019-vcos_pthreads.c-define-a-fallback-value-for-HZ-musl-.patch
+##  0020-vcos_pthreads.c-skip-setting-CPU-affinity-if-buildin.patch
+##  0021-v3d-driver-middleware-khronos-glxx-glxx_texture.c-ba.patch
+##  0022-earth_es2-allow-app-to-be-run-from-any-directory.patch
+##  0023-v3d-platform-nexus-platform_nexus.mk-dont-strip-libn.patch
+##  0024-vc5-platform-nexus-platform_nexus.mk-dont-strip-libn.patch
+0025-v3d-driver-V3DDriver.mk-dont-strip-libv3ddriver.so.patch
+##  0026-vc5-driver-V3DDriver.mk-dont-strip-libv3ddriver.so.patch
+##  0027-v3d-driver-V3DDriver.mk-add-V3D_CFLAGS_OPT-hook.patch
+##  0028-vc5-driver-V3DDriver.mk-add-V3D_CFLAGS_OPT-hook.patch
+##  0029-nexus-lib-ipc-add-support-for-libb_ipc.so.patch
+##  0030-nexus_sage_image.c-set-SAGE_DEFAULT_PATH-to-lib-firm.patch
+0031-SWVC4-827-Add-BGRA-fastpath-detection.patch
+##  0032-v3d-driver-V3DDriver.mk-set-soname-for-libv3ddriver..patch
+##  0033-vc5-driver-V3DDriver.mk-set-soname-for-libv3ddriver..patch
+##  0034-v3d-platform-nexus-platform_nexus.mk-set-soname-for-.patch
+##  0035-vc5-platform-nexus-platform_nexus.mk-set-soname-for-.patch
+##  0036-v3d-platform-nexus-platform_nexus.mk-add-NEXUS_EXTRA.patch
+##  0037-vc5-platform-nexus-platform_nexus.mk-add-NEXUS_EXTRA.patch
+##  0038-v3d-platform-nexus-platform_nexus.mk-drop-zlib-and-l.patch
+##  0039-nexus-lib-os-src-linuxuser-b_os_thread.c-use-libc-de.patch
+
+#instrument-gpu-memory.patch

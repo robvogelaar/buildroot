@@ -1,0 +1,30 @@
+From 264eadf0b6087f43aee44fb8f10d67904acf5046 Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Thu, 12 Nov 2015 15:40:00 -0800
+Subject: [PATCH] nexus/nxclient/examples/Makefile: install apps in
+ nxclient_examples subdirectory
+
+Keep example apps together in their own directory to simplify packaging.
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ nexus/nxclient/examples/Makefile | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/nexus/nxclient/examples/Makefile b/nexus/nxclient/examples/Makefile
+index 7109b8d..d80d57f 100644
+--- a/nexus/nxclient/examples/Makefile
++++ b/nexus/nxclient/examples/Makefile
+@@ -83,7 +83,8 @@ LDFLAGS += $(NXCLIENT_LDFLAGS) -lpthread
+ $(APPS): %: %.c
+ 	@echo [Compile... $<]
+ 	$(Q_)$(CC) -o $@ $(filter %.c %.s %.o, $^) $(CFLAGS) $(LDFLAGS)
+-	$(CP) $@ ${NEXUS_BIN_DIR}
++	$(MKDIR) ${NEXUS_BIN_DIR}/nxclient_examples
++	$(CP) $@ ${NEXUS_BIN_DIR}/nxclient_examples/
+ 
+ clean clean_apps:
+ 	$(RM) $(APPS)
+-- 
+1.9.1
+

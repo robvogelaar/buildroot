@@ -1,0 +1,84 @@
+From 1424f561d71de7a92ff775beae424e85e273499f Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Wed, 23 Mar 2016 15:45:39 -0700
+Subject: [PATCH] earth_es2: allow app to be run from any directory
+
+Add a wrapper for the original LoadTexture() function so that the
+earth_es2 app doesn't need to be run from the same directory as the
+textures.
+
+If the requested texture file does not already have an absolute path,
+and the file can be found in the preferred path, then call the
+original function with the preferred path to the texture file, else
+pass the path unmodified.
+
+Note that this change depends on a corresponding change in the build
+environment to install the textures in the preferred location in the
+rootfs.
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ .../khronos/v3d/nexus/earth_es2/load_texture.c     | 26 +++++++++++++++++++++-
+ 1 file changed, 25 insertions(+), 1 deletion(-)
+
+diff --git a/rockford/applications/khronos/v3d/nexus/earth_es2/load_texture.c b/rockford/applications/khronos/v3d/nexus/earth_es2/load_texture.c
+index e95d6d8..88900e2 100644
+--- a/rockford/applications/khronos/v3d/nexus/earth_es2/load_texture.c
++++ b/rockford/applications/khronos/v3d/nexus/earth_es2/load_texture.c
+@@ -13,6 +13,7 @@ Texture load helper
+ #include <string.h>
+ #include <malloc.h>
+ #include <assert.h>
++#include <sys/stat.h>
+ 
+ #include "load_texture.h"
+ #include "nexus_surface.h"
+@@ -22,6 +23,10 @@ Texture load helper
+ 
+ #include <GLES2/gl2ext.h>
+ 
++#if !defined (TEXTURE_PATH_PREFIX)
++#define TEXTURE_PATH_PREFIX "/usr/share/broadcom-refsw/earth_es2"
++#endif
++
+ /*#define USE_NEXUS_PICTURE_DECODER*/
+ 
+ #ifdef USE_NEXUS_PICTURE_DECODER
+@@ -106,7 +111,7 @@ void DestroyTextureLoader(void)
+ #endif
+ }
+ 
+-bool LoadTexture(const char *pictureFilename, GLint mipLevel)
++static bool LoadTexture2(const char *pictureFilename, GLint mipLevel)
+ {
+ #ifdef USE_NEXUS_PICTURE_DECODER
+    NEXUS_SurfaceHandle           picture, rgba;
+@@ -240,6 +245,25 @@ bool LoadTexture(const char *pictureFilename, GLint mipLevel)
+ #endif
+ }
+ 
++/*
++   Wrapper for the original LoadTexture() function so that app doesn't need to
++   be run from the same directory as the textures...
++   If the requested texture file does not already have an absolute path, and the
++   file can be found in the preferred path, then call the original function with
++   the preferred path to the texture file, else pass the path unmodified.
++*/
++bool LoadTexture(const char *pictureFilename, GLint mipLevel)
++{
++   char buf[128];
++   struct stat statbuf;
++
++   if (pictureFilename && pictureFilename[0] != '/')
++      if (snprintf (buf, sizeof(buf), "%s/%s", TEXTURE_PATH_PREFIX, pictureFilename) < (int) sizeof(buf))
++         if (stat (buf, &statbuf) == 0)
++            pictureFilename = buf;
++
++   return LoadTexture2 (pictureFilename, mipLevel);
++}
+ 
+ void read_big_endian_2byte_word(unsigned short *blockadr, FILE *f)
+ {
+-- 
+1.9.1
+

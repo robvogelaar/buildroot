@@ -1,0 +1,40 @@
+From 4809e82e93f3b9c826bc9ed5f9736f7e6b30fc32 Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Fri, 13 Nov 2015 21:28:36 -0800
+Subject: [PATCH] rockford/middleware/v3d/driver/V3DDriver.mk: add -lm to
+ LDFLAGS
+
+The v3d libv3ddriver.so requires libm:
+
+ | configure:33951: mipsel-rdk-linux-gcc  -mel -mabi=32 -mhard-float -march=mips32 --sysroot=.../build-dawn/tmp/sysroots/dawn -o conftest  -O2 -pipe -g -feliminate-unused-debug-types -fstack-protector-strong -D_FORTIFY_SOURCE=2  -Wl,-O1  -Wl,--as-needed  conftest.c -lGLESv2   >&5
+ | .../build-dawn/tmp/sysroots/dawn/usr/lib/libGLESv2.so: undefined reference to `sincos'
+ | .../build-dawn/tmp/sysroots/dawn/usr/lib/libGLESv2.so: undefined reference to `fmodf'
+ | .../build-dawn/tmp/sysroots/dawn/usr/lib/libGLESv2.so: undefined reference to `expf'
+ | .../build-dawn/tmp/sysroots/dawn/usr/lib/libGLESv2.so: undefined reference to `floorf'
+ | .../build-dawn/tmp/sysroots/dawn/usr/lib/libGLESv2.so: undefined reference to `sqrtf'
+ | .../build-dawn/tmp/sysroots/dawn/usr/lib/libGLESv2.so: undefined reference to `ceilf'
+ | .../build-dawn/tmp/sysroots/dawn/usr/lib/libGLESv2.so: undefined reference to `cos'
+ | .../build-dawn/tmp/sysroots/dawn/usr/lib/libGLESv2.so: undefined reference to `sincosf'
+ | .../build-dawn/tmp/sysroots/dawn/usr/lib/libGLESv2.so: undefined reference to `atan2f'
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ rockford/middleware/v3d/driver/V3DDriver.mk | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/rockford/middleware/v3d/driver/V3DDriver.mk b/rockford/middleware/v3d/driver/V3DDriver.mk
+index 8002bf1..f630adf 100644
+--- a/rockford/middleware/v3d/driver/V3DDriver.mk
++++ b/rockford/middleware/v3d/driver/V3DDriver.mk
+@@ -110,7 +110,7 @@ endif
+ # Add any customer specific cflags from the command line
+ CFLAGS += $(V3D_EXTRA_CFLAGS)
+ 
+-LDFLAGS = -lpthread -ldl
++LDFLAGS = -lpthread -ldl -lm
+ 
+ # Add any customer specific ldflags from the command line
+ LDFLAGS += $(V3D_EXTRA_LDFLAGS)
+-- 
+1.9.1
+

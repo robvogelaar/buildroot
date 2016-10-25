@@ -1,0 +1,81 @@
+From 3718b15aef88c1264ca35df65ffb96e66caa64ab Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Fri, 29 Apr 2016 18:13:00 -0700
+Subject: [PATCH] nexus/lib/ipc: add support for libb_ipc.so
+
+By default the bipc_server.c, bipc_client.c and bipc_util.c sources
+are compiled into libnxclient.so. For platform-server builds, these
+sources need to be compiled into a separate library (ie libb_ipc.so)
+instead.
+
+Warning: nexus/lib/ipc/build/Makefile contains logic which effectively
+removes NEXUS_CFLAGS from the default CFLAGS if B_REFSW_ARCH is
+defined, which can cause build failures, since NEXUS_CFLAGS typically
+sets up the include path to ${NEXUS_BIN_DIR}/include.
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ nexus/lib/ipc/build/Makefile | 16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/nexus/lib/ipc/build/Makefile b/nexus/lib/ipc/build/Makefile
+index d977f6d..dd587dc 100644
+--- a/nexus/lib/ipc/build/Makefile
++++ b/nexus/lib/ipc/build/Makefile
+@@ -78,6 +78,9 @@ endif
+ # need this for CHIP definitions
+ include $(BSEAV)/api/build/tools.mak
+ 
++# Default optimisation (define early so that NEXUS_CFLAGS etc can over-ride).
++CFLAGS += -Os
++
+ ifndef CUSTOM_FLAGS
+ CFLAGS += $(NEXUS_CFLAGS) 
+ else
+@@ -106,6 +109,7 @@ vpath %.c ..
+ 
+ SERVER_SRCS := bipc_server.c bipc_util.c bipc_server_test.c ${SRCS} 
+ CLIENT_SRCS := bipc_client.c bipc_util.c bipc_client_test.c ${SRCS} 
++LIBIPC_SRCS := bipc_server.c bipc_client.c bipc_util.c
+ 
+ INTERFACES =  bsspk_decoder.h bsac_session.h
+ CLIENT_IPC = ${ODIR}/ipc_client.h
+@@ -113,17 +117,20 @@ SERVER_IPC = ${ODIR}/ipc_server.h
+ 
+ SERVER = ${ODIR}/server
+ CLIENT = ${ODIR}/client
++LIBIPC = ${ODIR}/libb_ipc.so
+ 
+ ifeq (${OS},linuxuser)
+ LDFLAGS += -lpthread
+ endif
+ 
+-all: ${ODIR}/flag apps
++all: ${ODIR}/flag apps libipc
+ 
+ .NOTPARALLEL: 
+ 
+ apps: ${SERVER}	${CLIENT}
+ 
++libipc: ${LIBIPC}
++
+ ${ODIR}/flag:
+ 	@${MKDIR} ${ODIR}
+ 	@${TOUCH} $@
+@@ -139,6 +146,13 @@ ${CLIENT}: ${CLIENT_SRCS} ${CLIENT_IPC}
+ 	@echo $(CC) -o $@
+ 	$(Q_)$(CC) -o $@ $(filter-out %.h, $^) $(CFLAGS) $(LDFLAGS)
+ 
++${LIBIPC}: ${LIBIPC_SRCS} ${SERVER_IPC} ${CLIENT_IPC}
++	$(CC) $(CFLAGS) $(LDFLAGS) -fPIC -c -o ${ODIR}/bipc_client.o ../bipc_client.c
++	$(CC) $(CFLAGS) $(LDFLAGS) -fPIC -c -o ${ODIR}/bipc_server.o ../bipc_server.c
++	$(CC) $(CFLAGS) $(LDFLAGS) -fPIC -c -o ${ODIR}/bipc_util.o ../bipc_util.c
++	$(CC) $(CFLAGS) $(LDFLAGS) -shared -o $@ -Wl,-soname,libb_ipc.so ${ODIR}/bipc_client.o ${ODIR}/bipc_server.o ${ODIR}/bipc_util.o
++	mkdir -p $(NEXUS_BIN_DIR) && cp $@ $(NEXUS_BIN_DIR)/
++
+ debug: apps
+ 	echo "set args ${CLIENT}" >.gdbinit
+ 	echo "r" >>.gdbinit
+-- 
+1.9.1
+

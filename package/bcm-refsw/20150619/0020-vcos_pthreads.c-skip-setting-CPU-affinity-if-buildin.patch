@@ -1,0 +1,49 @@
+From a87617226f88b325c9c6959bec255b3cc372e3b2 Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Wed, 18 Nov 2015 15:57:04 -0800
+Subject: [PATCH] vcos_pthreads.c: skip setting CPU affinity if building for
+ musl
+
+pthread_attr_setaffinity_np() is not implemented by musl.
+
+The correct fix would be to call pthread_setaffinity_np() to set CPU
+affinity from inside the newly created thread (ie from within
+vcos_thread_entry()), which is portable for glibc, uclibc and musl.
+
+However, since CPU affinity doesn't actually seem to be used, as a
+simple workaround just disable the pthread_attr_setaffinity_np() call
+unless we are building for glibc or uclibc (ie __GLIBC__ is defined).
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ .../v3d/driver/interface/vcos/pthreads/vcos_pthreads.c     | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/rockford/middleware/v3d/driver/interface/vcos/pthreads/vcos_pthreads.c b/rockford/middleware/v3d/driver/interface/vcos/pthreads/vcos_pthreads.c
+index 5c4f123..83c97e3 100644
+--- a/rockford/middleware/v3d/driver/interface/vcos/pthreads/vcos_pthreads.c
++++ b/rockford/middleware/v3d/driver/interface/vcos/pthreads/vcos_pthreads.c
+@@ -157,7 +157,19 @@ VCOS_STATUS_T vcos_thread_create(VCOS_THREAD_T *thread,
+       pthread_attr_setschedparam(&pt_attrs, &param);
+    }
+ 
+-#ifndef ANDROID
++/*
++   pthread_attr_setaffinity_np() is not implemented by musl.
++
++   The correct fix would be to call pthread_setaffinity_np() to set CPU
++   affinity from inside the newly created thread (ie from within
++   vcos_thread_entry()), which is portable for glibc, uclibc and musl.
++
++   However, since CPU affinity doesn't actually seem to be used, as a
++   simple workaround just disable the pthread_attr_setaffinity_np() call
++   unless we are building for glibc or uclibc (ie __GLIBC__ is defined).
++*/
++
++#if defined __GLIBC__ && ! defined ANDROID
+    if (local_attrs->ta_affinity != 0)
+    {
+       cpu_set_t cpuset;
+-- 
+1.9.1
+

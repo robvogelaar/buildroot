@@ -1,0 +1,66 @@
+From 6f82c32311501fac0531f3079fc27d08707c2618 Mon Sep 17 00:00:00 2001
+From: Jim Hauxwell <hauxwell@broadcom.com>
+Date: Tue, 6 Oct 2015 16:41:09 +0100
+Subject: [PATCH] SWVC4-827: Add BGRA fastpath detection
+
+---
+ .../driver/middleware/khronos/common/khrn_image.c   | 21 +++++++++++++++++++--
+ 1 file changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/rockford/middleware/v3d/driver/middleware/khronos/common/khrn_image.c b/rockford/middleware/v3d/driver/middleware/khronos/common/khrn_image.c
+index 91fbc57..8cc4bc9 100644
+--- a/rockford/middleware/v3d/driver/middleware/khronos/common/khrn_image.c
++++ b/rockford/middleware/v3d/driver/middleware/khronos/common/khrn_image.c
+@@ -24,6 +24,9 @@ which is implemented in interface/khronos/common/khrn_int_image.c.
+ 
+ #include "helpers/vc_image/vc_image.h"
+ 
++#include "interface/khronos/include/GLES2/gl2.h"
++#include "interface/khronos/include/GLES2/gl2ext.h"
++
+ #include <stdlib.h>
+ #include <string.h>
+ 
+@@ -3481,11 +3484,18 @@ static bool khrn_fast_copy_to_tf(
+       case BGRA_8888:
+       case XBGR_8888:
+       case RGBX_8888:
++#if GL_EXT_texture_format_BGRA8888
++      case ARGB_8888:
++#endif
+          if (dstFormat == ABGR_8888_TF ||
+              dstFormat == RGBA_8888_TF ||
+              dstFormat == BGRA_8888_TF ||
+              dstFormat == XBGR_8888_TF ||
+-             dstFormat == RGBX_8888_TF)
++             dstFormat == RGBX_8888_TF
++#if GL_EXT_texture_format_BGRA8888
++          || dstFormat == ARGB_8888_TF
++#endif
++         )
+          {
+             done = khrn_copy_8888_to_tf32(dst->storage, dst->width, dst_x, dst_y, width, height, srcStorage, src_x, src_y, src->stride, srcDir);
+          }
+@@ -3636,11 +3646,18 @@ static bool khrn_par_fast_copy_to_tf(
+                case BGRA_8888:
+                case XBGR_8888:
+                case RGBX_8888:
++#if GL_EXT_texture_format_BGRA8888
++               case ARGB_8888:
++#endif
+                   if (dstFormat == ABGR_8888_TF ||
+                       dstFormat == RGBA_8888_TF ||
+                       dstFormat == BGRA_8888_TF ||
+                       dstFormat == XBGR_8888_TF ||
+-                      dstFormat == RGBX_8888_TF)
++                      dstFormat == RGBX_8888_TF
++#if GL_EXT_texture_format_BGRA8888
++                   || dstFormat == ARGB_8888_TF
++#endif
++                  )
+                      parallel = true;
+                   break;
+ 
+-- 
+1.9.1
+

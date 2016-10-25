@@ -1,0 +1,51 @@
+From 45b67636d09a0cfaf65c563106822a08df543947 Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Mon, 4 Apr 2016 21:06:22 -0700
+Subject: [PATCH] v3d/driver/V3DDriver.mk: add V3D_CFLAGS_OPT hook
+
+By default the v3d driver is optimised for size ( -Os ). Add support
+for allowing the optimisation level to be over-ridden via the
+V3D_CFLAGS_OPT environment variable (but keep -Os by default).
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ rockford/middleware/v3d/driver/V3DDriver.mk | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/rockford/middleware/v3d/driver/V3DDriver.mk b/rockford/middleware/v3d/driver/V3DDriver.mk
+index 864c08c..03f3ed2 100644
+--- a/rockford/middleware/v3d/driver/V3DDriver.mk
++++ b/rockford/middleware/v3d/driver/V3DDriver.mk
+@@ -115,6 +115,11 @@ LDFLAGS = -lpthread -ldl -lm
+ # Add any customer specific ldflags from the command line
+ LDFLAGS += $(V3D_EXTRA_LDFLAGS)
+ 
++# Optimise for size by default, but allow environment to over-ride
++ifeq ($(V3D_CFLAGS_OPT),)
++V3D_CFLAGS_OPT := -Os
++endif
++
+ ifeq ($(V3D_DEBUG),y)
+ 
+ # Show a BIG warning about debug mode
+@@ -128,7 +133,7 @@ $(info ***** performance of the V3D driver.)
+ $(info ****************************************************)
+ 
+ ifneq ($(PROFILING),0)
+-CFLAGS += -Os -g -DNDEBUG
++CFLAGS += $(V3D_CFLAGS_OPT) -g -DNDEBUG
+ LDFLAGS += --export-dynamic
+ else
+ CFLAGS += -O0 -g -fvisibility=hidden
+@@ -140,7 +145,7 @@ LIBDIR ?= lib_$(NEXUS_PLATFORM)_debug
+ 
+ else
+ 
+-CFLAGS += -Os -DNDEBUG
++CFLAGS += $(V3D_CFLAGS_OPT) -DNDEBUG
+ 
+ ifeq ($(PROFILING),0)
+ CFLAGS += -fvisibility=hidden
+-- 
+1.9.1
+
