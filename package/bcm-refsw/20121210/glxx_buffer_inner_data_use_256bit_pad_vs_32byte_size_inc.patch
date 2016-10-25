@@ -1,0 +1,70 @@
+diff -Naur a/rockford/middleware/v3d/middleware/khronos/glxx/glxx_buffer.c b/rockford/middleware/v3d/middleware/khronos/glxx/glxx_buffer.c
+--- a/rockford/middleware/v3d/middleware/khronos/glxx/glxx_buffer.c	2012-12-19 10:42:07.000000000 -0800
++++ b/rockford/middleware/v3d/middleware/khronos/glxx/glxx_buffer.c	2016-10-25 15:38:15.687460145 -0700
+@@ -159,7 +159,7 @@
+       if (khrn_workarounds.GFXH776)
+       {
+          /* indicies can be prefetched up to 256bits after the end.  This causes ARC violations */
+-         size += 32;
++         flags |= MEM_FLAG_256BIT_PAD;
+       }
+       handle = mem_alloc_ex((uint32_t)size, 4, flags,
+          "GLXX_BUFFER_INNER_T.storage", MEM_COMPACT_DISCARD);
+diff -Naur a/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c b/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c
+--- a/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c	2016-03-16 15:25:07.077006600 -0700
++++ b/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c	2016-10-25 15:32:47.934190694 -0700
+@@ -607,7 +607,20 @@
+ {
+    /* needs to be max of CPU cache line and the GCACHE on the v3d */
+    uint32_t cacheline_size = max(mem_cacheline_size(), BCG_GCACHE_LINE_SIZE);
+-   h->allocedSize = (flags & MEM_FLAG_DIRECT) ? ((size + (cacheline_size - 1)) & ~(cacheline_size - 1)) : size;
++   if (flags & MEM_FLAG_DIRECT)
++   {
++      h->allocedSize = (size + (cacheline_size - 1)) & ~(cacheline_size - 1);
++      if (flags & MEM_FLAG_256BIT_PAD)
++      {
++         /* round to 32bytes */
++         h->allocedSize = ((h->allocedSize + 31) & ~0x1F);
++         /* add 32bytes, for HW to prefetch */
++         h->allocedSize += 32;
++      }
++   }
++   else
++      h->allocedSize = size;
++
+    h->size = size;
+    h->align = (flags & MEM_FLAG_DIRECT) ? ((align > cacheline_size) ? align : cacheline_size) : align;
+    h->term = NULL;
+@@ -1132,6 +1145,13 @@
+       /* needs to be max of CPU cache line and the GCACHE on the v3d */
+       uint32_t cacheline_size = max(mem_cacheline_size(), BCG_GCACHE_LINE_SIZE);
+       h->allocedSize = (size + (cacheline_size - 1)) & ~(cacheline_size - 1);
++      if (h->flags & MEM_FLAG_256BIT_PAD)
++      {
++         /* round to 32bytes */
++         h->allocedSize = ((h->allocedSize + 31) & ~0x1F);
++         /* add 32bytes, for HW to prefetch */
++         h->allocedSize += 32;
++      }
+ 
+       nptr = allocate_direct(h);
+ 
+diff -Naur a/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.h b/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.h
+--- a/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.h	2016-10-25 15:29:21.432360178 -0700
++++ b/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.h	2016-10-25 14:19:22.298849600 -0700
+@@ -283,8 +283,13 @@
+    /* Internal use only - do not specify when allocating */
+    MEM_FLAG_WRAPPED = 1 << 10,
+ 
+-   /* There is currently room in MEM_HEADER_X_T for 11 flags */
+-   MEM_FLAG_ALL = 0x7ff
++   /*
++      If the 256bit flag is set then allocate a complete 256bits off the end of the buffer
++   */
++   MEM_FLAG_256BIT_PAD = 1 << 11,
++
++   /* There is currently room in MEM_HEADER_X_T for 12 flags */
++   MEM_FLAG_ALL = 0xfff
+ } MEM_FLAG_T;
+ 
+ /*

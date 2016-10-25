@@ -1,6 +1,6 @@
 diff -Naur a/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c b/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c
 --- a/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c	2016-03-16 15:25:07.077006662 -0700
-+++ b/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c	2016-10-24 14:51:07.912716400 -0700
++++ b/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c	2016-10-25 15:49:45.240318310 -0700
 @@ -710,6 +710,11 @@
     - MEM_HANDLE_INVALID is returned.
  */
@@ -89,11 +89,10 @@ diff -Naur a/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c b/ro
  }
  
  /*
-@@ -1114,6 +1167,12 @@
+@@ -1114,6 +1167,11 @@
     uint32_t size,
     mem_compact_mode_t mode)
  {
-+
 +   unsigned int ra = 0;
 +   #ifdef __mips__
 +   asm volatile("move %0, $ra" : "=r"(ra));
@@ -102,7 +101,7 @@ diff -Naur a/rockford/middleware/v3d/vcfw/rtos/abstract/rtos_abstract_mem.c b/ro
     int res;
     MEM_HEADER_T *h = (MEM_HEADER_T *)handle;
     void * nptr;
-@@ -1185,6 +1244,20 @@
+@@ -1185,6 +1243,20 @@
  
     vcos_mutex_unlock((VCOS_MUTEX_T *)&g_mgr.mh);
  
