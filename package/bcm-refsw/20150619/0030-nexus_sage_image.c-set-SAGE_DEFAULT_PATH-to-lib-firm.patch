@@ -1,0 +1,38 @@
+From 38502b25fec064e78cef9e616d35daacbf1d1b5a Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Thu, 23 Jun 2016 14:54:43 -0700
+Subject: [PATCH] nexus_sage_image.c: set SAGE_DEFAULT_PATH to /lib/firmware
+
+The default behaviour is to attempt to load Sage firmware images from
+the current working directory of the application which initialises
+Nexus. However that leads to Sage firmware needing to be installed in
+strange locations (e.g. /usr/bin) to make things work.
+
+Update the default search path for Sage firmware images to the
+standard firmware path (ie /lib/firmware) to avoid that. Note that
+the path may still be over-ridden at run-time via the SAGEBIN_PATH
+environment variable, e.g.
+
+  export SAGEBIN_PATH="/lib/firmware"
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ nexus/modules/sage/src/linuxuser/nexus_sage_image.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/nexus/modules/sage/src/linuxuser/nexus_sage_image.c b/nexus/modules/sage/src/linuxuser/nexus_sage_image.c
+index bcb62fc..069a576 100644
+--- a/nexus/modules/sage/src/linuxuser/nexus_sage_image.c
++++ b/nexus/modules/sage/src/linuxuser/nexus_sage_image.c
+@@ -54,7 +54,7 @@ BDBG_MODULE(nexus_sage_image);
+ #define SAGE_IMAGE_FirmwareID_Max (4)
+ #define SAGE_IMG_BUFFER_SIZE      (64*1024)
+ 
+-#define SAGE_DEFAULT_PATH         "."
++#define SAGE_DEFAULT_PATH         "/lib/firmware"
+ 
+ #define boot_loader_image         "sage_bl.bin"
+ #define kernel_image              "sage_os_app.bin"
+-- 
+1.9.1
+

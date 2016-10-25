@@ -1,0 +1,39 @@
+From 329817966741ac26905c489c9731324a76cf3beb Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Wed, 18 Nov 2015 12:57:05 -0800
+Subject: [PATCH] vcos_backtrace.c: disable backtrace for musl libc
+
+Note that "#if defined __GLIBC__" will be true for glibc and uclibc
+and false for musl and bionic, so the test for !defined ANDROID is
+now probably redundant.
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ rockford/middleware/vc5/driver/vcos/pthreads/vcos_backtrace.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/rockford/middleware/vc5/driver/vcos/pthreads/vcos_backtrace.c b/rockford/middleware/vc5/driver/vcos/pthreads/vcos_backtrace.c
+index e0b87f4..6250f71 100644
+--- a/rockford/middleware/vc5/driver/vcos/pthreads/vcos_backtrace.c
++++ b/rockford/middleware/vc5/driver/vcos/pthreads/vcos_backtrace.c
+@@ -10,7 +10,7 @@ Print out a backtrace
+ =============================================================================*/
+ 
+ #include <vcos.h>
+-#if defined __linux__ && !defined ANDROID
++#if defined __linux__ && defined __GLIBC__ && !defined ANDROID
+ #include <execinfo.h>
+ #endif
+ #include <stdio.h>
+@@ -19,7 +19,7 @@ Print out a backtrace
+ 
+ void vcos_backtrace_self(void)
+ {
+-#if defined __linux__ && !defined ANDROID
++#if defined __linux__ && defined __GLIBC__ && !defined ANDROID
+    void *stack[64];
+    int depth = backtrace(stack, sizeof(stack)/sizeof(stack[0]));
+    char **names = backtrace_symbols(stack, depth);
+-- 
+1.9.1
+

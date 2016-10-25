@@ -1,0 +1,39 @@
+From 312b3a599d513da9fdf93cca340c721da5cbd566 Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Thu, 8 Oct 2015 12:35:53 -0700
+Subject: [PATCH] use immediate expansion in nexus platform_version.inc
+
+Forking a shell every time NEXUS_PLATFORM_VERSION_NUMBER is used is
+inefficient and slows down the build. With immediate expansion (ie
+using ':=' instead of '=') the value of NEXUS_PLATFORM_VERSION_NUMBER
+is only calculated once.
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ nexus/platforms/common/build/platform_version.inc | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/nexus/platforms/common/build/platform_version.inc b/nexus/platforms/common/build/platform_version.inc
+index 912d814..25467a8 100644
+--- a/nexus/platforms/common/build/platform_version.inc
++++ b/nexus/platforms/common/build/platform_version.inc
+@@ -48,11 +48,11 @@
+ #
+ ############################################################
+ 
+-NEXUS_PLATFORM_VERSION_MAJOR = 15
+-NEXUS_PLATFORM_VERSION_MINOR = 2
++NEXUS_PLATFORM_VERSION_MAJOR := 15
++NEXUS_PLATFORM_VERSION_MINOR := 2
+ 
+-NEXUS_PLATFORM_VERSION_UNITS = 256
+-NEXUS_PLATFORM_VERSION_NUMBER = $(shell expr $(NEXUS_PLATFORM_VERSION_MAJOR) \* $(NEXUS_PLATFORM_VERSION_UNITS) + $(NEXUS_PLATFORM_VERSION_MINOR))
+-NEXUS_PLATFORM_VERSION_DECIMAL = $(NEXUS_PLATFORM_VERSION_MAJOR)$(if $(NEXUS_PLATFORM_VERSION_MINOR),.$(NEXUS_PLATFORM_VERSION_MINOR))
++NEXUS_PLATFORM_VERSION_UNITS := 256
++NEXUS_PLATFORM_VERSION_NUMBER := $(shell expr $(NEXUS_PLATFORM_VERSION_MAJOR) \* $(NEXUS_PLATFORM_VERSION_UNITS) + $(NEXUS_PLATFORM_VERSION_MINOR))
++NEXUS_PLATFORM_VERSION_DECIMAL := $(NEXUS_PLATFORM_VERSION_MAJOR)$(if $(NEXUS_PLATFORM_VERSION_MINOR),.$(NEXUS_PLATFORM_VERSION_MINOR))
+ 
+ export NEXUS_PLATFORM_VERSION_MAJOR NEXUS_PLATFORM_VERSION_MINOR NEXUS_PLATFORM_VERSION_NUMBER NEXUS_PLATFORM_VERSION_DECIMAL
+-- 
+1.9.1
+

@@ -1,0 +1,27 @@
+From adbea743b4c41e1435121530d1afcb6b61827353 Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Fri, 23 Sep 2016 21:16:44 -0700
+Subject: [PATCH] vc5/platform/nexus/platform_nexus.mk: set soname for
+ libnxpl.so
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ rockford/middleware/vc5/platform/nexus/platform_nexus.mk | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/rockford/middleware/vc5/platform/nexus/platform_nexus.mk b/rockford/middleware/vc5/platform/nexus/platform_nexus.mk
+index ca90ee1..65bc6ab 100644
+--- a/rockford/middleware/vc5/platform/nexus/platform_nexus.mk
++++ b/rockford/middleware/vc5/platform/nexus/platform_nexus.mk
+@@ -163,7 +163,7 @@ endif
+ $(LIBDIR)/libnxpl.so: $(OBJS)
+ 	$(Q)echo Linking ... libnxpl.so
+ 	$(Q)mkdir -p $(LIBDIR)
+-	$(Q)$(CC) $(LDFLAGS) -shared -o $(LIBDIR)/libnxpl.so $(OBJS)
++	$(Q)$(CC) $(LDFLAGS) -shared -o $(LIBDIR)/libnxpl.so -Wl,-soname,libnxpl.so $(OBJS)
+ 
+ $(LIBDIR)/libnxpl.a: $(OBJS)
+ 	$(Q)echo Archiving ... libnxpl.a
+-- 
+1.9.1
+

@@ -1,14 +1,8 @@
-001-qtwebkit-revert-canvas.patch
-002-qtwebkit-memory_leakage-font.patch
-
-##qtwebkit-0001-cookieJar.patch
-##qtwebkit-0010-animation.patch
-##qtwebkit532-instrument.patch
-##qtwebkit532-3eddba879bbda7cbc0692c17d16afd32576f20fb-instrument.patch
-##qtwebkit541-instrument.patch
-##qtwebkit541-fe3dba3a52ca361458be25f5bb6a4711fffc6c19-instrument.patch
-
-##  qtwebkit-0030-overlapregions-transparency-condition.patch
-
-
-qtwebkit541-fe3dba3a52ca361458be25f5bb6a4711fffc6c19-instrument.patch
+####001-qtwebkit-revert-canvas.patch
+####002-qtwebkit-memory_leakage-font.patch
+004-qt5webkit-incorrect-type-speculation-reported-by-toprimitive.patch
+005-qt5webkit-add-support-authenticated-post-requests.patch
+006-qt5webkit-avoid-crash-display-none-root-elements.patch
+007-qt5webkit-llint-alignment-arm.patch
+008-qt5webkit-map-css-font-weights.patch
+009-qt5webkit-remove-xml-caching.patch

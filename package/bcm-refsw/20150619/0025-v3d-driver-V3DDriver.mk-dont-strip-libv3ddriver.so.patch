@@ -1,0 +1,34 @@
+From 4e0e2def3b32f4e95b5bc1d3969d735b9b12c4d3 Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Mon, 4 Apr 2016 19:08:25 -0700
+Subject: [PATCH] v3d/driver/V3DDriver.mk: dont strip libv3ddriver.so
+
+Stripping libraries should happen during packaging, or as part of a
+post-processing step when creating the rootfs, not when the binaries
+are built (even for release builds).
+
+Fix for QA warnings such as:
+
+  WARNING: broadcom-refsw-15.2-r0 do_package: QA Issue: File '/usr/lib/libv3ddriver.so' from broadcom-refsw was already stripped, this will prevent future debugging! [already-stripped]
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ rockford/middleware/v3d/driver/V3DDriver.mk | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/rockford/middleware/v3d/driver/V3DDriver.mk b/rockford/middleware/v3d/driver/V3DDriver.mk
+index f630adf..864c08c 100644
+--- a/rockford/middleware/v3d/driver/V3DDriver.mk
++++ b/rockford/middleware/v3d/driver/V3DDriver.mk
+@@ -144,8 +144,6 @@ CFLAGS += -Os -DNDEBUG
+ 
+ ifeq ($(PROFILING),0)
+ CFLAGS += -fvisibility=hidden
+-# Strip
+-LDFLAGS += -s
+ else
+ CFLAGS += -g
+ LDFLAGS += -g --export-dynamic
+-- 
+1.9.1
+

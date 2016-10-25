@@ -1,0 +1,30 @@
+From c8eccfa05a0388e8c68f977c2113dec47a3e3468 Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Fri, 23 Sep 2016 21:11:47 -0700
+Subject: [PATCH] v3d/platform/nexus/platform_nexus.mk: add NEXUS_EXTRA_LDFLAGS
+ to LDFLAGS
+
+NEXUS_EXTRA_LDFLAGS is used to pass user space specific LDFLAGS,
+including security flags.
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ rockford/middleware/v3d/platform/nexus/platform_nexus.mk | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/rockford/middleware/v3d/platform/nexus/platform_nexus.mk b/rockford/middleware/v3d/platform/nexus/platform_nexus.mk
+index a2dfd23..68a3914 100644
+--- a/rockford/middleware/v3d/platform/nexus/platform_nexus.mk
++++ b/rockford/middleware/v3d/platform/nexus/platform_nexus.mk
+@@ -30,6 +30,8 @@ endif
+ 
+ LDFLAGS = -lpthread
+ 
++LDFLAGS += $(NEXUS_EXTRA_LDFLAGS)
++
+ ifeq ($(filter ${B_REFSW_ARCH}, mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
+ CFLAGS += -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_BIG
+ else
+-- 
+1.9.1
+

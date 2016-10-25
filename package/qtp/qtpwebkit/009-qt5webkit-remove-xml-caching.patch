@@ -1,0 +1,13 @@
+diff --git a/Source/WebCore/xml/XMLHttpRequest.cpp 
+b/Source/WebCore/xml/XMLHttpRequest.cpp
+index 72ffabb..0201899 100644
+--- a/Source/WebCore/xml/XMLHttpRequest.cpp
++++ b/Source/WebCore/xml/XMLHttpRequest.cpp
+@@ -786,6 +786,7 @@ void XMLHttpRequest::createRequest(ExceptionCode& ec)
+     options.allowCredentials = (m_sameOriginRequest || m_includeCredentials) ? 
+     options.crossOriginRequestPolicy = UseAccessControl;
+     options.securityOrigin = securityOrigin();
++    options.dataBufferingPolicy = DoNotBufferData;
+ #if ENABLE(RESOURCE_TIMING)
+     options.initiator = cachedResourceRequestInitiators().xmlhttprequest;
+ #endif

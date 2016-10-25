@@ -1,0 +1,31 @@
+From b981f83c7379ac9d11b9f841dfad159e459b7cdd Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Fri, 23 Sep 2016 21:05:16 -0700
+Subject: [PATCH] v3d/platform/nexus/platform_nexus.mk: drop zlib and libpng
+ include paths
+
+These include paths don't seem to be needed (and if they were, the
+headers should come from sysroot, not from a local private copies
+which may be the wrong version).
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ rockford/middleware/v3d/platform/nexus/platform_nexus.mk | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/rockford/middleware/v3d/platform/nexus/platform_nexus.mk b/rockford/middleware/v3d/platform/nexus/platform_nexus.mk
+index 68a3914..70e1cba 100644
+--- a/rockford/middleware/v3d/platform/nexus/platform_nexus.mk
++++ b/rockford/middleware/v3d/platform/nexus/platform_nexus.mk
+@@ -15,8 +15,6 @@ CFLAGS += \
+ 	-fpic -DPIC \
+ 	-I. \
+ 	-I$(V3D_DIR)/interface/khronos/include \
+-	-I$(NEXUS_TOP)/../BSEAV/lib/zlib \
+-	-I$(NEXUS_TOP)/../BSEAV/lib/libpng \
+ 	-DBCHP_CHIP=$(BCHP_CHIP)
+ 
+ CFLAGS += -c $(foreach dir,$(NEXUS_APP_INCLUDE_PATHS),-I$(dir)) $(foreach def,$(NEXUS_APP_DEFINES),-D"$(def)")
+-- 
+1.9.1
+

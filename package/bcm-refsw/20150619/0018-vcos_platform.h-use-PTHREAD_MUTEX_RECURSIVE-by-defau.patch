@@ -1,0 +1,52 @@
+From dde3546739ab5bfe9d4809088916dfe59b440473 Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Wed, 18 Nov 2015 13:56:39 -0800
+Subject: [PATCH] vcos_platform.h: use PTHREAD_MUTEX_RECURSIVE by default
+
+Use PTHREAD_MUTEX_RECURSIVE for compatibility with musl libc (which
+does not provide PTHREAD_MUTEX_RECURSIVE_NP).
+
+If _GNU_SOURCE is defined, then glibc and uclibc also provide
+PTHREAD_MUTEX_RECURSIVE, so there's no real need to use the legacy,
+non-portable, PTHREAD_MUTEX_RECURSIVE_NP definition anymore.
+
+Note that _GNU_SOURCE is currently always defined by the build
+environment but check it from vcos_platform.h as well, just to be
+sure.
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ rockford/middleware/vc5/driver/vcos/pthreads/vcos_platform.h | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/rockford/middleware/vc5/driver/vcos/pthreads/vcos_platform.h b/rockford/middleware/vc5/driver/vcos/pthreads/vcos_platform.h
+index c8d81d1..c9c2dfe 100644
+--- a/rockford/middleware/vc5/driver/vcos/pthreads/vcos_platform.h
++++ b/rockford/middleware/vc5/driver/vcos/pthreads/vcos_platform.h
+@@ -24,6 +24,10 @@ VideoCore OS Abstraction Layer - pthreads types
+ extern "C" {
+ #endif
+ 
++#if defined(__linux__) && ! defined(_GNU_SOURCE)
++#error "_GNU_SOURCE unexpectedly undefined"
++#endif
++
+ #include <alloca.h>
+ #include <pthread.h>
+ #include <semaphore.h>
+@@ -483,12 +487,7 @@ static inline VCOS_STATUS_T vcos_reentrant_mutex_create(VCOS_REENTRANT_MUTEX_T *
+ 
+    (void)name;
+    pthread_mutexattr_init(&attr);
+-#ifdef __linux__
+-   /* Linux uses PTHREAD_MUTEX_RECURSIVE_NP to mean PTHREAD_MUTEX_RECURSIVE */
+-   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE_NP);
+-#else
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+-#endif
+ 
+    rc = pthread_mutex_init(m, &attr);
+    if (rc == 0)
+-- 
+1.9.1
+

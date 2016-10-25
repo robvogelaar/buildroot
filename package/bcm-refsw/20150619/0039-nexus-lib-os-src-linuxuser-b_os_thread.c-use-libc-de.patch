@@ -1,0 +1,56 @@
+From d0bbe20a2ae1656d69d918681f4f8889dd0e6534 Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Tue, 12 Jan 2016 16:56:22 -0800
+Subject: [PATCH] nexus/lib/os/src/linuxuser/b_os_thread.c: use libc default
+ pthread stack size
+
+The hardcoded DEFAULT_STACK_SIZE of 64k is smaller than
+PTHREAD_STACK_MIN for glibc MIPS systems (128k).
+
+Backport from 15.4
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ nexus/lib/os/src/linuxuser/b_os_thread.c | 19 +++++++++----------
+ 1 file changed, 9 insertions(+), 10 deletions(-)
+
+diff --git a/nexus/lib/os/src/linuxuser/b_os_thread.c b/nexus/lib/os/src/linuxuser/b_os_thread.c
+index 139a0c8..f6b711d 100644
+--- a/nexus/lib/os/src/linuxuser/b_os_thread.c
++++ b/nexus/lib/os/src/linuxuser/b_os_thread.c
+@@ -60,8 +60,6 @@
+ #include "blst_queue.h"
+ #include <sys/prctl.h>
+ 
+-#define DEFAULT_STACK_SIZE (64*1024)
+-
+ BDBG_MODULE(b_os_thread);
+ 
+ static BLST_Q_HEAD(threadList, B_Thread) g_threadList = BLST_Q_INITIALIZER(B_Thread);
+@@ -184,14 +182,15 @@ B_ThreadHandle B_Thread_Create(
+     }
+ 
+     pthread_attr_init(&threadAttr);
+-    rc = pthread_attr_setstacksize(&threadAttr,
+-                                   (pSettings->stackSize==0)?DEFAULT_STACK_SIZE:pSettings->stackSize);
+-    if ( rc )
+-    {
+-        free(pThread->pName);
+-        B_Os_Free(pThread);
+-        errCode = BERR_TRACE(B_ERROR_OS_ERROR);
+-        return NULL;
++    if (pSettings->stackSize) {
++        rc = pthread_attr_setstacksize(&threadAttr, pSettings->stackSize);
++        if ( rc )
++        {
++            free(pThread->pName);
++            B_Os_Free(pThread);
++            errCode = BERR_TRACE(B_ERROR_OS_ERROR);
++            return NULL;
++        }
+     }
+ 
+     pThread->hExitEvent = B_Event_Create(NULL);
+-- 
+1.9.1
+

@@ -1,0 +1,94 @@
+From 12112dbe488363f43621e6f748a7da6fdec83020 Mon Sep 17 00:00:00 2001
+From: Andre McCurdy <armccurdy@gmail.com>
+Date: Thu, 12 Nov 2015 15:40:00 -0800
+Subject: [PATCH] add various NEXUS_EXTRA_CFLAGS etc (ie --sysroot) hooks
+
+Signed-off-by: Andre McCurdy <armccurdy@gmail.com>
+---
+ BSEAV/api/build/tools.mak                                | 4 ++--
+ nexus/lib/build/nexus/b_lib_system_rules.inc             | 5 +++++
+ nexus/nxclient/build/Makefile                            | 5 +++++
+ rockford/middleware/v3d/platform/nexus/platform_nexus.mk | 4 ++--
+ rockford/middleware/vc5/platform/nexus/platform_nexus.mk | 4 ++--
+ 5 files changed, 16 insertions(+), 6 deletions(-)
+
+diff --git a/BSEAV/api/build/tools.mak b/BSEAV/api/build/tools.mak
+index 63ed3a4..642d8d0 100644
+--- a/BSEAV/api/build/tools.mak
++++ b/BSEAV/api/build/tools.mak
+@@ -103,8 +103,8 @@ endif
+ # Define make variables
+ AS      = $(CROSS_COMPILE)as
+ LD      = $(CROSS_COMPILE)ld
+-CC      = $(CROSS_COMPILE)gcc
+-CXX     = $(CROSS_COMPILE)c++
++CC      = $(CROSS_COMPILE)gcc $(NEXUS_EXTRA_CFLAGS)
++CXX     = $(CROSS_COMPILE)c++ $(NEXUS_EXTRA_CFLAGS)
+ AR      = $(CROSS_COMPILE)ar
+ NM      = $(CROSS_COMPILE)nm
+ STRIP   = $(CROSS_COMPILE)strip
+diff --git a/nexus/lib/build/nexus/b_lib_system_rules.inc b/nexus/lib/build/nexus/b_lib_system_rules.inc
+index dc3b727..9dd34c1 100644
+--- a/nexus/lib/build/nexus/b_lib_system_rules.inc
++++ b/nexus/lib/build/nexus/b_lib_system_rules.inc
+@@ -169,6 +169,11 @@ B_LINKER := $(CXX)
+ endif
+ 
+ #
++# OE hook to include --sysroot.
++#
++LDFLAGS += $(NEXUS_EXTRA_LDFLAGS)
++
++#
+ # Specify additional external library dirs and libraries
+ #
+ LDFLAGS += $(addprefix -L,$(B_REFSW_EXTRA_LIB_DIRS)) $(addprefix -l,$(B_REFSW_EXTRA_LIBS))
+diff --git a/nexus/nxclient/build/Makefile b/nexus/nxclient/build/Makefile
+index fc4bfff..42cf3d0 100644
+--- a/nexus/nxclient/build/Makefile
++++ b/nexus/nxclient/build/Makefile
+@@ -82,6 +82,11 @@ LDFLAGS += -nostdlib \
+ 	-L$(ANDROID_LIB) \
+ 	-Wl,--no-whole-archive -lcutils -lc -lm -lgcc \
+ 	-Wl,--whole-archive	
++else
++#
++# OE hook to include --sysroot.
++#
++LDFLAGS += $(NEXUS_EXTRA_LDFLAGS)
+ endif
+ 
+ IPC_LIB=$(NEXUS_BIN_DIR)/libnxclient.so
+diff --git a/rockford/middleware/v3d/platform/nexus/platform_nexus.mk b/rockford/middleware/v3d/platform/nexus/platform_nexus.mk
+index f9a030f..3a5a92b 100644
+--- a/rockford/middleware/v3d/platform/nexus/platform_nexus.mk
++++ b/rockford/middleware/v3d/platform/nexus/platform_nexus.mk
+@@ -36,8 +36,8 @@ else
+ CFLAGS += -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE
+ endif
+ 
+-CC = $(B_REFSW_CROSS_COMPILE)gcc
+-C++ = $(B_REFSW_CROSS_COMPILE)g++
++CC = $(B_REFSW_CROSS_COMPILE)gcc $(NEXUS_EXTRA_CFLAGS)
++C++ = $(B_REFSW_CROSS_COMPILE)g++ $(NEXUS_EXTRA_CFLAGS)
+ 
+ ifeq ($(V3D_DEBUG),y)
+ CFLAGS += -O0 -g
+diff --git a/rockford/middleware/vc5/platform/nexus/platform_nexus.mk b/rockford/middleware/vc5/platform/nexus/platform_nexus.mk
+index 5249c0a..678ca0e 100644
+--- a/rockford/middleware/vc5/platform/nexus/platform_nexus.mk
++++ b/rockford/middleware/vc5/platform/nexus/platform_nexus.mk
+@@ -50,8 +50,8 @@ CFLAGS += -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE
+ 
+ LDFLAGS = -lpthread
+ 
+-CC = $(B_REFSW_CROSS_COMPILE)gcc
+-C++ = $(B_REFSW_CROSS_COMPILE)g++
++CC = $(B_REFSW_CROSS_COMPILE)gcc $(NEXUS_EXTRA_CFLAGS)
++C++ = $(B_REFSW_CROSS_COMPILE)g++ $(NEXUS_EXTRA_CFLAGS)
+ 
+ ifeq ($(V3D_DEBUG),y)
+ CFLAGS += -O0 -g
+-- 
+1.9.1
+
