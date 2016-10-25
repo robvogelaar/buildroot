@@ -1,0 +1,1473 @@
+diff -Naur a/Source/JavaScriptCore/bytecode/CodeBlock.cpp b/Source/JavaScriptCore/bytecode/CodeBlock.cpp
+--- a/Source/JavaScriptCore/bytecode/CodeBlock.cpp	2015-09-07 03:54:06.000000000 -0700
++++ b/Source/JavaScriptCore/bytecode/CodeBlock.cpp	2016-07-01 16:51:16.784983930 -0700
+@@ -86,6 +86,9 @@
+     return CodeBlockHash(ownerExecutable()->source(), specializationKind());
+ }
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x2000)
++
+ String CodeBlock::sourceCodeForTools() const
+ {
+     if (codeType() != FunctionCode)
+@@ -107,6 +110,14 @@
+ 
+ String CodeBlock::sourceCodeOnOneLine() const
+ {
++    if (tditrace_ex != NULL) {
++        unsigned int ra = 0;
++        #ifdef __mips__
++        asm volatile("move %0, $ra" : "=r"(ra));
++        #endif
++        tditrace_ex(TDIMASK, "@S+CodeBlock::sourceCodeOnOneLine() ra=%x", ra);
++    }
++
+     return reduceWhitespace(sourceCodeForTools());
+ }
+ 
+diff -Naur a/Source/JavaScriptCore/interpreter/Interpreter.cpp b/Source/JavaScriptCore/interpreter/Interpreter.cpp
+--- a/Source/JavaScriptCore/interpreter/Interpreter.cpp	2015-09-07 03:54:06.000000000 -0700
++++ b/Source/JavaScriptCore/interpreter/Interpreter.cpp	2016-07-01 16:51:30.251898320 -0700
+@@ -791,6 +791,11 @@
+     Interpreter* m_interpreter;
+ };
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x2000)
++#define MAXSTRLEN 128
++#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
++
+ JSValue Interpreter::execute(ProgramExecutable* program, CallFrame* callFrame, JSObject* thisObj)
+ {
+     SamplingScope samplingScope(this);
+@@ -939,6 +944,9 @@
+     if (LegacyProfiler* profiler = vm.enabledProfiler())
+         profiler->willExecute(callFrame, program->sourceURL(), program->lineNo());
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+JS1 [%s]", program->sourceURL().utf8().data());
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A+JS1");
++
+     // Execute the code:
+     JSValue result;
+     {
+@@ -952,14 +960,18 @@
+ #endif // ENABLE(JIT)
+     }
+ 
+-    if (LegacyProfiler* profiler = vm.enabledProfiler())
++    if (LegacyProfiler* profiler = vm.enabledProfiler()) 
+         profiler->didExecute(callFrame, program->sourceURL(), program->lineNo());
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A-JS1");
++
++
+     m_stack.popFrame(newCallFrame);
+ 
+     return checkedReturn(result);
+ }
+ 
++
+ JSValue Interpreter::executeCall(CallFrame* callFrame, JSObject* function, CallType callType, const CallData& callData, JSValue thisValue, const ArgList& args)
+ {
+     VM& vm = callFrame->vm();
+@@ -1013,6 +1025,15 @@
+     if (LegacyProfiler* profiler = vm.enabledProfiler())
+         profiler->willExecute(callFrame, function);
+ 
++    if (tditrace_ex != NULL) {
++        const String& thename = getCalculatedDisplayName(callFrame, function);
++        char s[64 + 1];
++        strncpy(s, newCodeBlock ? newCodeBlock->sourceCodeOnOneLine().utf8().data() : "?", 64);
++        s[64] = '\0';
++        tditrace_ex(TDIMASK, "@S+JS2 \'%s\':\'%s%s\'", thename.utf8().data(), s, newCodeBlock ? strlen(newCodeBlock->sourceCodeOnOneLine().utf8().data()) > 64 ? "..." : "" : "");
++        tditrace_ex(TDIMASK, "@A+JS2");
++    }
++
+     JSValue result;
+     {
+         SamplingTool::CallRecord callRecord(m_sampler.get(), !isJSCall);
+@@ -1032,6 +1053,8 @@
+     if (LegacyProfiler* profiler = vm.enabledProfiler())
+         profiler->didExecute(callFrame, function);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A-JS2");
++
+     m_stack.popFrame(newCallFrame);
+     return checkedReturn(result);
+ }
+@@ -1091,6 +1114,8 @@
+     if (LegacyProfiler* profiler = vm.enabledProfiler())
+         profiler->willExecute(callFrame, constructor);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A+JS3");
++
+     JSValue result;
+     {
+         SamplingTool::CallRecord callRecord(m_sampler.get(), !isJSConstruct);
+@@ -1110,6 +1135,8 @@
+     if (LegacyProfiler* profiler = vm.enabledProfiler())
+         profiler->didExecute(callFrame, constructor);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A-JS3");
++
+     m_stack.popFrame(newCallFrame);
+ 
+     if (callFrame->hadException())
+@@ -1176,6 +1203,15 @@
+     if (LegacyProfiler* profiler = vm.enabledProfiler())
+         profiler->willExecute(closure.oldCallFrame, closure.function);
+ 
++    if (tditrace_ex != NULL) {
++        FunctionCodeBlock* newCodeBlock = &closure.functionExecutable->generatedBytecodeForCall();
++        char s[64 + 1];
++        strncpy(s, newCodeBlock ? newCodeBlock->sourceCodeOnOneLine().utf8().data() : "?", 64);
++        s[64] = '\0';
++        tditrace_ex(TDIMASK, "@S+JS4 \'%s%s\'", s, strlen(newCodeBlock->sourceCodeOnOneLine().utf8().data()) > 64 ? "..." : "");
++        tditrace_ex(TDIMASK, "@A+JS4");
++    }
++
+     if (UNLIKELY(vm.watchdog.didFire(closure.oldCallFrame)))
+         return throwTerminatedExecutionException(closure.oldCallFrame);
+ 
+@@ -1205,6 +1241,8 @@
+     if (LegacyProfiler* profiler = vm.enabledProfiler())
+         profiler->didExecute(closure.oldCallFrame, closure.function);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A-JS4");
++
+     m_stack.validateFence(closure.newCallFrame, "AFTER");
+     return checkedReturn(result);
+ }
+@@ -1288,6 +1326,8 @@
+     if (LegacyProfiler* profiler = vm.enabledProfiler())
+         profiler->willExecute(callFrame, eval->sourceURL(), eval->lineNo());
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A+JS5");
++
+     // Execute the code:
+     JSValue result;
+     {
+@@ -1304,6 +1344,8 @@
+     if (LegacyProfiler* profiler = vm.enabledProfiler())
+         profiler->didExecute(callFrame, eval->sourceURL(), eval->lineNo());
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A-JS5");
++
+     m_stack.popFrame(newCallFrame);
+     return checkedReturn(result);
+ }
+diff -Naur a/Source/JavaScriptCore/jit/JIT.cpp b/Source/JavaScriptCore/jit/JIT.cpp
+--- a/Source/JavaScriptCore/jit/JIT.cpp	2015-09-07 03:54:06.000000000 -0700
++++ b/Source/JavaScriptCore/jit/JIT.cpp	2016-07-01 16:51:59.279373957 -0700
+@@ -562,12 +562,25 @@
+     }
+ }
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x2000)
++
+ JITCode JIT::privateCompile(CodePtr* functionEntryArityCheck, JITCompilationEffort effort)
+ {
++
++    if (tditrace_ex != NULL) {
++        char s[64 + 1];
++        strncpy(s, m_codeBlock->sourceCodeOnOneLine().utf8().data(), 64);
++        s[64] = '\0';
++        tditrace_ex(TDIMASK, "@S+JIT %s%s", s, strlen(m_codeBlock->sourceCodeOnOneLine().utf8().data()) > 64 ? "..." : "");
++        tditrace_ex(TDIMASK, "@A+JIT");
++    }
++
++
+ #if ENABLE(JIT_VERBOSE_OSR)
+     printf("Compiling JIT code!\n");
+ #endif
+-    
++
+ #if ENABLE(VALUE_PROFILER)
+     DFG::CapabilityLevel level = m_codeBlock->canCompileWithDFG();
+     switch (level) {
+@@ -619,6 +632,9 @@
+     Jump stackCheck;
+     if (m_codeBlock->codeType() == FunctionCode) {
+ #if ENABLE(DFG_JIT)
++
++
++
+ #if DFG_ENABLE(SUCCESS_STATS)
+         static SamplingCounter counter("orignalJIT");
+         emitCount(counter);
+@@ -798,7 +814,10 @@
+ #if ENABLE(JIT_VERBOSE)
+     dataLogF("JIT generated code for %p at [%p, %p).\n", m_codeBlock, result.executableMemory()->start(), result.executableMemory()->end());
+ #endif
+-    
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A-JIT");
++    //fprintf(stderr, "%p at [%p, %p) %s\n", m_codeBlock, result.executableMemory()->start(), result.executableMemory()->end(), m_codeBlock->sourceCodeOnOneLine().utf8().data());
++
+     return JITCode(result, JITCode::BaselineJIT);
+ }
+ 
+diff -Naur a/Source/WebCore/dom/ContainerNodeAlgorithms.h b/Source/WebCore/dom/ContainerNodeAlgorithms.h
+--- a/Source/WebCore/dom/ContainerNodeAlgorithms.h	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/dom/ContainerNodeAlgorithms.h	2016-07-01 16:53:01.755756037 -0700
+@@ -29,6 +29,10 @@
+ #include "NodeTraversal.h"
+ #include <wtf/Assertions.h>
+ 
++#include <wtf/text/CString.h>
++#include <wtf/text/WTFString.h>
++#include <wtf/text/StringBuilder.h>
++
+ namespace WebCore {
+ 
+ class ChildNodeInsertionNotifier {
+@@ -211,8 +215,49 @@
+     notifyDescendantInsertedIntoTree(node);
+ }
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x8)
++
+ inline void ChildNodeInsertionNotifier::notify(Node* node)
+ {
++
++    if (tditrace_ex != NULL) {
++        StringBuilder name;
++        if (Element* element = node && node->isElementNode() ? toElement(node) : 0) {
++            name.append(element->tagName());
++
++            if (element->hasID()) {
++                name.appendLiteral(" id=\'");
++                name.append(element->getIdAttribute());
++                name.append('\'');
++            }
++
++            if (element->hasClass()) {
++                name.appendLiteral(" class=\'");
++                for (size_t i = 0; i < element->classNames().size(); ++i) {
++                    if (i > 0)
++                        name.append(' ');
++                    name.append(element->classNames()[i]);
++                }
++                name.append('\'');
++            }
++        }
++
++        char text[256];
++        int i;
++        if (name.toString().is8Bit()) {
++            i = name.toString().length() < 255 ? name.toString().length() : 255;
++            strncpy(text, (char*)name.toString().characters8(), i);
++        } else {
++            char* p = (char*)name.toString().characters8();
++            for (i = 0 ; i < (name.toString().length() < 255 ? name.toString().length() : 255) ; i++) {
++                text[i] = p[i];
++            }
++        }
++        text[i]=0;
++        tditrace_ex(TDIMASK, "@S+DOM %s", text);
++    }
++
+     ASSERT(!NoEventDispatchAssertion::isEventDispatchForbidden());
+ 
+ #if ENABLE(INSPECTOR)
+diff -Naur a/Source/WebCore/dom/Document.cpp b/Source/WebCore/dom/Document.cpp
+--- a/Source/WebCore/dom/Document.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/dom/Document.cpp	2016-07-01 16:53:09.039043949 -0700
+@@ -167,6 +167,9 @@
+ #include <wtf/PassRefPtr.h>
+ #include <wtf/text/StringBuffer.h>
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x4)
++
+ #if USE(ACCELERATED_COMPOSITING)
+ #include "RenderLayerCompositor.h"
+ #endif
+@@ -1779,6 +1782,8 @@
+ 
+     InspectorInstrumentationCookie cookie = InspectorInstrumentation::willRecalculateStyle(this);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+Document::recalcStyle()");
++
+     if (m_elemSheet && m_elemSheet->contents()->usesRemUnits())
+         m_styleSheetCollection->setUsesRemUnit(true);
+ 
+@@ -1849,6 +1854,8 @@
+ 
+     InspectorInstrumentation::didRecalculateStyle(cookie);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-Document::recalcStyle()");
++
+     // As a result of the style recalculation, the currently hovered element might have been
+     // detached (for example, by setting display:none in the :hover style), schedule another mouseMove event
+     // to check if any other elements ended up under the mouse pointer due to re-layout.
+diff -Naur a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp b/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp
+--- a/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/html/canvas/CanvasRenderingContext2D.cpp	2016-07-01 16:53:18.158000849 -0700
+@@ -58,6 +58,9 @@
+ #include "TextMetrics.h"
+ #include "TextRun.h"
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x10)
++
+ #if USE(ACCELERATED_COMPOSITING)
+ #include "RenderLayer.h"
+ #endif
+@@ -1039,6 +1042,9 @@
+         return;
+     FloatRect rect(x, y, width, height);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CanvasRenderingContext2D::clearRect() %dx%d+%d+%d", (int)rect.width(), (int)rect.height(), (int)rect.x(), (int)rect.y());
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+CanvasRenderingContext2D::clearRect() %dx%d+%d+%d", (int)rect.width(), (int)rect.height(), (int)rect.x(), (int)rect.y());
++
+     bool saved = false;
+     if (shouldDrawShadows()) {
+         context->save();
+@@ -1063,6 +1069,8 @@
+     if (saved)
+         context->restore();
+     didDraw(rect);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-CanvasRenderingContext2D::clearRect()");
+ }
+ 
+ void CanvasRenderingContext2D::fillRect(float x, float y, float width, float height)
+@@ -1085,6 +1093,9 @@
+ 
+     FloatRect rect(x, y, width, height);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CanvasRenderingContext2D::fillRect() %dx%d+%d+%d", (int)rect.width(), (int)rect.height(), (int)rect.x(), (int)rect.y());
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+CanvasRenderingContext2D::fillRect() %dx%d+%d+%d", (int)rect.width(), (int)rect.height(), (int)rect.x(), (int)rect.y());
++
+     if (rectContainsCanvas(rect)) {
+         c->fillRect(rect);
+         didDrawEntireCanvas();
+@@ -1099,6 +1110,8 @@
+         c->fillRect(rect);
+         didDraw(rect);
+     }
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-CanvasRenderingContext2D::fillRect()");
+ }
+ 
+ void CanvasRenderingContext2D::strokeRect(float x, float y, float width, float height)
+@@ -2083,12 +2096,46 @@
+ 
+ void CanvasRenderingContext2D::fillText(const String& text, float x, float y)
+ {
++    char t[128];
++    int i;
++    if (text.is8Bit()) {
++        i = text.length() < 127 ? text.length() : 127;
++        strncpy(t, (char*)text.characters8(), i);
++    } else {
++        char* p = (char*)text.characters16();
++        for (i = 0 ; i < (text.length() < 127 ? text.length() : 127) ; i++) {
++            t[i] = p[0+i*2];
++        }
++    }
++    t[i]=0;
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CanvasRenderingContext2D::fillText() \"%s\"", t);
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+CanvasRenderingContext2D::fillText() \"%s\"", t);
++
+     drawTextInternal(text, x, y, true);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-CanvasRenderingContext2D::fillText()");
+ }
+ 
+ void CanvasRenderingContext2D::fillText(const String& text, float x, float y, float maxWidth)
+ {
++    if (text.is8Bit()) {
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CanvasRenderingContext2D::fillText() \"%s\"", (char*)text.characters8());
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+CanvasRenderingContext2D::fillText() \"%s\"", (char*)text.characters8());
++    } else {
++        char t[128];
++        int i;
++        char* p = (char*)text.characters16();
++        for (i = 0 ; i < (text.length() < 127 ? text.length() : 127) ; i++) {
++            t[i] = p[0+i*2];
++        }
++        t[i]=0;
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CanvasRenderingContext2D::fillText() \"%s\"", t);
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+CanvasRenderingContext2D::fillText() \"%s\"", t);
++    }
++
+     drawTextInternal(text, x, y, true, maxWidth, true);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-CanvasRenderingContext2D::fillText()");
+ }
+ 
+ void CanvasRenderingContext2D::strokeText(const String& text, float x, float y)
+diff -Naur a/Source/WebCore/html/canvas/WebGLRenderingContext.cpp b/Source/WebCore/html/canvas/WebGLRenderingContext.cpp
+--- a/Source/WebCore/html/canvas/WebGLRenderingContext.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/html/canvas/WebGLRenderingContext.cpp	2016-07-01 16:53:25.204330043 -0700
+@@ -84,6 +84,9 @@
+ #undef emit
+ #endif
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x20)
++
+ namespace WebCore {
+ 
+ const double secondsBetweenRestoreAttempts = 1.0;
+@@ -418,6 +421,8 @@
+         return nullptr;
+     }
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+WebGLRenderingContext::create()");
++
+     HostWindow* hostWindow = document->view()->root()->hostWindow();
+     GraphicsContext3D::Attributes attributes = attrs ? attrs->attributes() : GraphicsContext3D::Attributes();
+ 
+@@ -434,6 +439,7 @@
+ 
+     if (!context || !context->makeContextCurrent()) {
+         canvas->dispatchEvent(WebGLContextEvent::create(eventNames().webglcontextcreationerrorEvent, false, true, "Could not create a WebGL context."));
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-WebGLRenderingContext::create()");
+         return nullptr;
+     }
+ 
+@@ -444,6 +450,7 @@
+     OwnPtr<WebGLRenderingContext> renderingContext = adoptPtr(new WebGLRenderingContext(canvas, context, attributes));
+     renderingContext->suspendIfNeeded();
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-WebGLRenderingContext::create()");
+     return renderingContext.release();
+ }
+ 
+@@ -667,6 +674,8 @@
+         || m_attributes.preserveDrawingBuffer || (mask && m_framebufferBinding))
+         return false;
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+WebGLRenderingContext::clearIfComposited()");
++
+     RefPtr<WebGLContextAttributes> contextAttributes = getContextAttributes();
+ 
+     // Determine if it's possible to combine the clear the user asked for and this clear.
+@@ -709,6 +718,8 @@
+         m_context->bindFramebuffer(GraphicsContext3D::FRAMEBUFFER, objectOrZero(m_framebufferBinding.get()));
+     m_layerCleared = true;
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-WebGLRenderingContext::clearIfComposited()");
++
+     return combinedClear;
+ }
+ 
+diff -Naur a/Source/WebCore/inspector/InspectorDOMAgent.cpp b/Source/WebCore/inspector/InspectorDOMAgent.cpp
+--- a/Source/WebCore/inspector/InspectorDOMAgent.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/inspector/InspectorDOMAgent.cpp	2016-06-23 15:30:28.221808274 -0700
+@@ -1605,8 +1605,13 @@
+     m_frontend->childNodeInserted(parentId, prevId, value.release());
+ }
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<0)
++
+ void InspectorDOMAgent::didInsertDOMNode(Node* node)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+DOM-Node-insert");
++
+     if (isWhitespace(node))
+         return;
+ 
+diff -Naur a/Source/WebCore/inspector/InspectorInstrumentation.cpp b/Source/WebCore/inspector/InspectorInstrumentation.cpp
+--- a/Source/WebCore/inspector/InspectorInstrumentation.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/inspector/InspectorInstrumentation.cpp	2016-06-23 15:31:01.352033769 -0700
+@@ -179,6 +179,9 @@
+     return false;
+ }
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<0)
++
+ void InspectorInstrumentation::willInsertDOMNodeImpl(InstrumentingAgents* instrumentingAgents, Node* parent)
+ {
+ #if ENABLE(JAVASCRIPT_DEBUGGER)
+@@ -189,6 +192,8 @@
+ 
+ void InspectorInstrumentation::didInsertDOMNodeImpl(InstrumentingAgents* instrumentingAgents, Node* node)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+DOM-Node-insert");
++
+     if (InspectorDOMAgent* domAgent = instrumentingAgents->inspectorDOMAgent())
+         domAgent->didInsertDOMNode(node);
+ #if ENABLE(JAVASCRIPT_DEBUGGER)
+@@ -207,6 +212,8 @@
+ 
+ void InspectorInstrumentation::didRemoveDOMNodeImpl(InstrumentingAgents* instrumentingAgents, Node* node)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+DOM-Node-remove");
++
+ #if ENABLE(JAVASCRIPT_DEBUGGER)
+     if (InspectorDOMDebuggerAgent* domDebuggerAgent = instrumentingAgents->inspectorDOMDebuggerAgent())
+         domDebuggerAgent->didRemoveDOMNode(node);
+@@ -227,12 +234,16 @@
+ 
+ void InspectorInstrumentation::didModifyDOMAttrImpl(InstrumentingAgents* instrumentingAgents, Element* element, const AtomicString& name, const AtomicString& value)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+DOM-Attr-modify");
++
+     if (InspectorDOMAgent* domAgent = instrumentingAgents->inspectorDOMAgent())
+         domAgent->didModifyDOMAttr(element, name, value);
+ }
+ 
+ void InspectorInstrumentation::didRemoveDOMAttrImpl(InstrumentingAgents* instrumentingAgents, Element* element, const AtomicString& name)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+DOM-Attr-remove");
++
+     if (InspectorDOMAgent* domAgent = instrumentingAgents->inspectorDOMAgent())
+         domAgent->didRemoveDOMAttr(element, name);
+ }
+@@ -364,6 +375,9 @@
+ 
+ InspectorInstrumentationCookie InspectorInstrumentation::willCallFunctionImpl(InstrumentingAgents* instrumentingAgents, const String& scriptName, int scriptLine, ScriptExecutionContext* context)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+CallFunction %d", scriptLine);
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+CallFunction %d", scriptLine);
++
+     int timelineAgentId = 0;
+     if (InspectorTimelineAgent* timelineAgent = instrumentingAgents->inspectorTimelineAgent()) {
+         timelineAgent->willCallFunction(scriptName, scriptLine, frameForScriptExecutionContext(context));
+@@ -374,6 +388,8 @@
+ 
+ void InspectorInstrumentation::didCallFunctionImpl(const InspectorInstrumentationCookie& cookie)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-CallFunction");
++
+     if (InspectorTimelineAgent* timelineAgent = retrieveTimelineAgent(cookie))
+         timelineAgent->didCallFunction();
+ }
+diff -Naur a/Source/WebCore/loader/cache/CachedScript.cpp b/Source/WebCore/loader/cache/CachedScript.cpp
+--- a/Source/WebCore/loader/cache/CachedScript.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/loader/cache/CachedScript.cpp	2016-07-01 16:54:03.108405294 -0700
+@@ -68,8 +68,19 @@
+     return extractMIMETypeFromMediaType(m_response.httpHeaderField("Content-Type")).lower();
+ }
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x1000)
++
+ const String& CachedScript::script()
+ {
++    if (tditrace_ex != NULL) {
++        unsigned int ra = 0;
++        #ifdef __mips__
++        asm volatile("move %0, $ra" : "=r"(ra));
++        #endif
++        tditrace_ex(TDIMASK, "@S+CachedScript::script() ra=%x", ra);
++    }
++
+     ASSERT(!isPurgeable());
+ 
+     if (!m_script && m_data) {
+@@ -91,6 +102,14 @@
+ 
+ void CachedScript::destroyDecodedData()
+ {
++    if (tditrace_ex != NULL) {
++        unsigned int ra = 0;
++        #ifdef __mips__
++        asm volatile("move %0, $ra" : "=r"(ra));
++        #endif
++        tditrace_ex(TDIMASK, "@S+CachedScript::destroyDecodedData() ra=%x", ra);
++    }
++
+     m_script = String();
+     setDecodedSize(0);
+     if (!MemoryCache::shouldMakeResourcePurgeableOnEviction() && isSafeToMakePurgeable())
+diff -Naur a/Source/WebCore/loader/TextResourceDecoder.cpp b/Source/WebCore/loader/TextResourceDecoder.cpp
+--- a/Source/WebCore/loader/TextResourceDecoder.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/loader/TextResourceDecoder.cpp	2016-07-01 16:54:10.582488893 -0700
+@@ -607,8 +607,19 @@
+         && (m_source == DefaultEncoding || (m_source == EncodingFromParentFrame && m_hintEncoding)); 
+ }
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x1000)
++
+ String TextResourceDecoder::decode(const char* data, size_t len)
+ {
++    if (tditrace_ex != NULL) {
++        unsigned int ra = 0;
++        #ifdef __mips__
++        asm volatile("move %0, $ra" : "=r"(ra));
++        #endif
++        tditrace_ex(TDIMASK, "@S+TextResourceDecoder::decode() %d,ra=%x", len, ra);
++    }
++
+     size_t lengthOfBOM = 0;
+     if (!m_checkedForBOM)
+         lengthOfBOM = checkForBOM(data, len);
+diff -Naur a/Source/WebCore/page/Console.cpp b/Source/WebCore/page/Console.cpp
+--- a/Source/WebCore/page/Console.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/page/Console.cpp	2016-07-01 16:54:18.682266220 -0700
+@@ -156,9 +156,25 @@
+     internalAddMessage(page(), ClearMessageType, LogMessageLevel, state, arguments, true);
+ }
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x1)
++
+ void Console::trace(ScriptState* state, PassRefPtr<ScriptArguments> arguments)
+ {
+-    internalAddMessage(page(), TraceMessageType, LogMessageLevel, state, arguments, true, true);
++    //internalAddMessage(page(), TraceMessageType, LogMessageLevel, state, arguments, true, true);
++
++    if (tditrace_ex != NULL) {
++        for (size_t i = 0; i < arguments->argumentCount(); ++i) {
++            String argAsString = arguments->argumentAt(i).toString(arguments->globalState());
++            tditrace_ex(TDIMASK, "%s", argAsString.utf8().data());
++        }
++       // size_t stackSize = ScriptCallStack::maxCallStackSizeToCapture;
++       // RefPtr<ScriptCallStack> callStack(createScriptCallStack(state, stackSize));
++       // for (size_t i = 0; i < callStack->size(); ++i) {
++       //     String functionName = String(callStack->at(i).functionName());
++       //     fprintf(stderr, "\t%s\n", functionName.utf8().data());
++       // }
++    }
+ }
+ 
+ void Console::assertCondition(ScriptState* state, PassRefPtr<ScriptArguments> arguments, bool condition)
+diff -Naur a/Source/WebCore/page/DOMTimer.cpp b/Source/WebCore/page/DOMTimer.cpp
+--- a/Source/WebCore/page/DOMTimer.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/page/DOMTimer.cpp	2016-07-01 16:54:26.225178372 -0700
+@@ -35,6 +35,9 @@
+ #include <wtf/HashSet.h>
+ #include <wtf/StdLibExtras.h>
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x8)
++
+ using namespace std;
+ 
+ namespace WebCore {
+@@ -87,6 +90,8 @@
+     timer->suspendIfNeeded();
+     InspectorInstrumentation::didInstallTimer(context, timer->m_timeoutId, timeout, singleShot);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+DOMTimer:: install,%dms,%d", timeout, timer->m_timeoutId);
++
+     return timer->m_timeoutId;
+ }
+ 
+@@ -100,6 +105,8 @@
+ 
+     InspectorInstrumentation::didRemoveTimer(context, timeoutId);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+DOMTimer:: removeById,%d", timeoutId);
++
+     delete context->findTimeout(timeoutId);
+ }
+ 
+@@ -114,6 +121,8 @@
+ 
+     InspectorInstrumentationCookie cookie = InspectorInstrumentation::willFireTimer(context, m_timeoutId);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+DOMTimer:: fired,%d", m_timeoutId);
++
+     // Simple case for non-one-shot timers.
+     if (isActive()) {
+         double minimumInterval = context->minimumTimerInterval();
+diff -Naur a/Source/WebCore/page/FrameView.cpp b/Source/WebCore/page/FrameView.cpp
+--- a/Source/WebCore/page/FrameView.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/page/FrameView.cpp	2016-07-01 16:54:33.576971441 -0700
+@@ -77,6 +77,9 @@
+ #include "TextResourceDecoder.h"
+ #include "TextStream.h"
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x800)
++
+ #include <wtf/CurrentTime.h>
+ #include <wtf/TemporaryChange.h>
+ 
+@@ -3596,9 +3599,12 @@
+     if (needsLayout())
+         return;
+ 
+-    if (!p->paintingDisabled())
++    if (!p->paintingDisabled()) {
+         InspectorInstrumentation::willPaint(renderView);
+ 
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+FrameView::paintContents()");
++    }
++
+     bool isTopLevelPainter = !sCurrentPaintTimeStamp;
+     if (isTopLevelPainter)
+         sCurrentPaintTimeStamp = currentTime();
+@@ -3663,6 +3669,9 @@
+ 
+     if (!p->paintingDisabled()) {
+         InspectorInstrumentation::didPaint(renderView, p, rect);
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-FrameView::paintContents()");
++
+         // FIXME: should probably not fire milestones for snapshot painting. https://bugs.webkit.org/show_bug.cgi?id=117623
+         firePaintRelatedMilestones();
+     }
+diff -Naur a/Source/WebCore/platform/graphics/GraphicsContext.cpp b/Source/WebCore/platform/graphics/GraphicsContext.cpp
+--- a/Source/WebCore/platform/graphics/GraphicsContext.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/platform/graphics/GraphicsContext.cpp	2016-07-01 16:55:14.903443060 -0700
+@@ -36,6 +36,9 @@
+ 
+ #include "stdio.h"
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x80)
++
+ using namespace std;
+ 
+ namespace WebCore {
+@@ -414,7 +417,26 @@
+     if (paintingDisabled())
+         return;
+ 
++    if (tditrace_ex != NULL) {
++        char text[128];
++        int i;
++        if (run.is8Bit()) {
++            i = run.length() < 127 ? run.length() : 127;
++            strncpy(text, (char*)run.characters8(), i);
++        } else {
++            char* p = (char*)run.characters16();
++            for (i = 0 ; i < (run.length() < 127 ? run.length() : 127) ; i++) {
++                text[i] = p[0+i*2];
++            }
++        }
++        text[i]=0;
++        tditrace_ex(TDIMASK, "@S+GraphicsContext::drawText() \"%s\"", text);
++        tditrace_ex(TDIMASK, "@T+GraphicsContext::drawText() \"%s\"", text);
++    }
++
+     font.drawText(this, run, point, from, to);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-GraphicsContext::drawText()");
+ }
+ #endif
+ 
+@@ -504,6 +526,8 @@
+ {    if (paintingDisabled() || !image)
+         return;
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+GraphicsContext::drawImage() %dx%d+%d+%d", (int)dest.width(), (int)dest.height(), (int)dest.x(), (int)dest.y());
++
+     InterpolationQuality previousInterpolationQuality = InterpolationDefault;
+ 
+     if (useLowQualityScale) {
+@@ -516,6 +540,8 @@
+ 
+     if (useLowQualityScale)
+         setImageInterpolationQuality(previousInterpolationQuality);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-GraphicsContext::drawImage()");
+ }
+ 
+ void GraphicsContext::drawTiledImage(Image* image, ColorSpace styleColorSpace, const IntRect& destRect, const IntPoint& srcPoint, const IntSize& tileSize, CompositeOperator op, bool useLowQualityScale, BlendMode blendMode)
+diff -Naur a/Source/WebCore/platform/graphics/qt/ImageQt.cpp b/Source/WebCore/platform/graphics/qt/ImageQt.cpp
+--- a/Source/WebCore/platform/graphics/qt/ImageQt.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/platform/graphics/qt/ImageQt.cpp	2016-06-23 15:33:53.318565810 -0700
+@@ -53,6 +53,9 @@
+ 
+ #include <math.h>
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<0)
++
+ #if OS(WINDOWS)
+ QT_BEGIN_NAMESPACE
+ Q_GUI_EXPORT QPixmap qt_pixmapFromWinHBITMAP(HBITMAP, int hbitmapFormat = 0);
+@@ -157,6 +160,8 @@
+     if (transform.type() == QTransform::TxScale && transform.m11() == 0 && transform.m22() == 0)
+         return;
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+Image::drawPattern()");
++
+     QPixmap pixmap = *framePixmap;
+     if (tr.x() || tr.y() || tr.width() != pixmap.width() || tr.height() != pixmap.height())
+         pixmap = pixmap.copy(tr);
+@@ -194,10 +199,16 @@
+ 
+     QBrush b(pixmap);
+     b.setTransform(transform);
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+QPainter::fillRect() %dx%d+%d+%d,%s", (int)dr.width(), (int)dr.height(), (int)dr.x(), (int)dr.y(), "pixmap");
++
+     p->fillRect(dr, b);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-QPainter::fillRect()");
++
+     ctxt->setCompositeOperation(previousOperator);
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-Image::drawPattern()");
++
+     if (imageObserver())
+         imageObserver()->didDraw(this);
+ }
+diff -Naur a/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp b/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp
+--- a/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/platform/image-decoders/jpeg/JPEGImageDecoder.cpp	2016-07-01 16:55:24.662417911 -0700
+@@ -42,6 +42,9 @@
+ #include "PlatformInstrumentation.h"
+ #include <wtf/PassOwnPtr.h>
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x40)
++
+ extern "C" {
+ #if USE(ICCJPEG)
+ #include "iccjpeg.h"
+@@ -622,7 +625,13 @@
+     ImageFrame& frame = m_frameBufferCache[0];
+     if (frame.status() != ImageFrame::FrameComplete) {
+         PlatformInstrumentation::willDecodeImage("JPEG");
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+JPEGImageDecoder::frameBufferAtIndex()");
++
+         decode(false);
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-JPEGImageDecoder::frameBufferAtIndex()");
++
+         PlatformInstrumentation::didDecodeImage();
+     }
+     return &frame;
+diff -Naur a/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp b/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp
+--- a/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/platform/image-decoders/png/PNGImageDecoder.cpp	2016-07-01 16:55:33.238421406 -0700
+@@ -50,6 +50,9 @@
+ #include "qcms.h"
+ #endif
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x40)
++
+ #if defined(PNG_LIBPNG_VER_MAJOR) && defined(PNG_LIBPNG_VER_MINOR) && (PNG_LIBPNG_VER_MAJOR > 1 || (PNG_LIBPNG_VER_MAJOR == 1 && PNG_LIBPNG_VER_MINOR >= 4))
+ #define JMPBUF(png_ptr) png_jmpbuf(png_ptr)
+ #else
+@@ -259,7 +262,13 @@
+     ImageFrame& frame = m_frameBufferCache[0];
+     if (frame.status() != ImageFrame::FrameComplete) {
+         PlatformInstrumentation::willDecodeImage("PNG");
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+PNGImageDecoder::frameBufferAtIndex()");
++
+         decode(false);
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-PNGImageDecoder::frameBufferAtIndex()");
++
+         PlatformInstrumentation::didDecodeImage();
+     }
+     return &frame;
+diff -Naur a/Source/WebCore/platform/text/TextCodecUTF8.cpp b/Source/WebCore/platform/text/TextCodecUTF8.cpp
+--- a/Source/WebCore/platform/text/TextCodecUTF8.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/platform/text/TextCodecUTF8.cpp	2016-07-01 16:55:43.517572911 -0700
+@@ -260,12 +260,32 @@
+ 
+     return false;
+ }
+-    
++
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x1000)
++#define MAXSTRLEN 64
++#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
++
++
+ String TextCodecUTF8::decode(const char* bytes, size_t length, bool flush, bool stopOnError, bool& sawError)
+ {
++    unsigned int ra = 0;
++    #ifdef __mips__
++    asm volatile("move %0, $ra" : "=r"(ra));
++    #endif
++
++    if ((tditrace_ex != NULL) && bytes) {
++      char s[MAXSTRLEN + 1];
++      strncpy(s, (const char*)bytes, MIN(MAXSTRLEN, length));
++      s[MIN(MAXSTRLEN, length)] = '\0';
++      tditrace_ex(TDIMASK, "@S+TextCodecUTF8::decode() %d [%s],ra=%x", length, s, ra);
++      tditrace_ex(TDIMASK, "@A+TextCodecUTF8::decode() %d", length);
++    }
++
+     // Each input byte might turn into a character.
+     // That includes all bytes in the partial-sequence buffer because
+     // each byte in an invalid sequence will turn into a replacement character.
++
+     StringBuffer<LChar> buffer(m_partialSequenceSize + length);
+ 
+     const uint8_t* source = reinterpret_cast<const uint8_t*>(bytes);
+@@ -342,9 +362,15 @@
+ 
+     buffer.shrink(destination - buffer.characters());
+ 
++    if ((tditrace_ex != NULL) && bytes) tditrace_ex(TDIMASK, "@A-TextCodecUTF8::decode()");
++
+     return String::adopt(buffer);
+ 
+ upConvertTo16Bit:
++    
++
++    if ((tditrace_ex != NULL) && bytes) tditrace_ex(TDIMASK, "@A+TextCodecUTF8::decode()16 %d", length);
++
+     StringBuffer<UChar> buffer16(m_partialSequenceSize + length);
+ 
+     UChar* destination16 = buffer16.characters();
+@@ -417,6 +443,9 @@
+     } while (flush && m_partialSequenceSize);
+     
+     buffer16.shrink(destination16 - buffer16.characters());
++
++    if ((tditrace_ex != NULL) && bytes) tditrace_ex(TDIMASK, "@A-TextCodecUTF8::decode()16");
++    if ((tditrace_ex != NULL) && bytes) tditrace_ex(TDIMASK, "@A-TextCodecUTF8::decode()");
+     
+     return String::adopt(buffer16);
+ }
+diff -Naur a/Source/WebCore/rendering/RenderBlock.cpp b/Source/WebCore/rendering/RenderBlock.cpp
+--- a/Source/WebCore/rendering/RenderBlock.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/rendering/RenderBlock.cpp	2016-07-01 16:55:55.490285373 -0700
+@@ -65,11 +65,15 @@
+ #include <wtf/StackStats.h>
+ #include <wtf/TemporaryChange.h>
+ 
++
+ #if ENABLE(CSS_SHAPES)
+ #include "ShapeInsideInfo.h"
+ #include "ShapeOutsideInfo.h"
+ #endif
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x2)
++
+ using namespace std;
+ using namespace WTF;
+ using namespace Unicode;
+@@ -2970,6 +2974,44 @@
+  
+ void RenderBlock::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
+ {
++    if (tditrace_ex != NULL) {
++        StringBuilder name;
++        if (Element* element = node() && node()->isElementNode() ? toElement(node()) : 0) {
++            name.append(element->tagName());
++
++            if (element->hasID()) {
++                name.appendLiteral(" id=\'");
++                name.append(element->getIdAttribute());
++                name.append('\'');
++            }
++
++            if (element->hasClass()) {
++                name.appendLiteral(" class=\'");
++                for (size_t i = 0; i < element->classNames().size(); ++i) {
++                    if (i > 0)
++                        name.append(' ');
++                    name.append(element->classNames()[i]);
++                }
++                name.append('\'');
++            }
++        }
++
++        char text[256];
++        int i;
++        if (name.toString().is8Bit()) {
++            i = name.toString().length() < 255 ? name.toString().length() : 255;
++            strncpy(text, (char*)name.toString().characters8(), i);
++        } else {
++            char* p = (char*)name.toString().characters8();
++            for (i = 0 ; i < (name.toString().length() < 255 ? name.toString().length() : 255) ; i++) {
++                text[i] = p[i];
++            }
++        }
++        text[i]=0;
++        tditrace_ex(TDIMASK, "@S+RenderBlock::paint() %s,%dx%d+%d+%d,+%d+%d", text, paintInfo.rect.width(), paintInfo.rect.height(), paintInfo.rect.x(), paintInfo.rect.y(), paintOffset.x().toInt(), paintOffset.y().toInt());
++        tditrace_ex(TDIMASK, "@T+RenderBlock::paint()");
++    }
++
+     LayoutPoint adjustedPaintOffset = paintOffset + location();
+     
+     PaintPhase phase = paintInfo.phase;
+@@ -2982,8 +3024,11 @@
+         flipForWritingMode(overflowBox);
+         overflowBox.inflate(maximalOutlineSize(paintInfo.phase));
+         overflowBox.moveBy(adjustedPaintOffset);
+-        if (!overflowBox.intersects(paintInfo.rect))
++        if (!overflowBox.intersects(paintInfo.rect)) {
++
++            if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderBlock::paint()");
+             return;
++        }
+     }
+ 
+     bool pushedClip = pushContentsClip(paintInfo, adjustedPaintOffset);
+@@ -2996,6 +3041,8 @@
+     // sit above the background/border.
+     if (hasOverflowClip() && style()->visibility() == VISIBLE && (phase == PaintPhaseBlockBackground || phase == PaintPhaseChildBlockBackground) && paintInfo.shouldPaintWithinRoot(this) && !paintInfo.paintRootBackgroundOnly())
+         layer()->paintOverflowControls(paintInfo.context, roundedIntPoint(adjustedPaintOffset), paintInfo.rect);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderBlock::paint()");
+ }
+ 
+ void RenderBlock::paintColumnRules(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
+diff -Naur a/Source/WebCore/rendering/RenderBox.cpp b/Source/WebCore/rendering/RenderBox.cpp
+--- a/Source/WebCore/rendering/RenderBox.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/rendering/RenderBox.cpp	2016-07-01 16:56:02.336447737 -0700
+@@ -61,6 +61,9 @@
+ #include "RenderLayerCompositor.h"
+ #endif
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x2)
++
+ using namespace std;
+ 
+ namespace WebCore {
+@@ -1039,6 +1042,8 @@
+ 
+ void RenderBox::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+RenderBox::paint()");
++
+     LayoutPoint adjustedPaintOffset = paintOffset + location();
+     // default implementation. Just pass paint through to the children
+     PaintInfo childInfo(paintInfo);
+@@ -1100,6 +1105,8 @@
+     if (!paintInfo.shouldPaintWithinRoot(this))
+         return;
+ 
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+RenderBox::paintBoxDecorations()");
++
+     LayoutRect paintRect = borderBoxRectInRegion(paintInfo.renderRegion);
+     paintRect.moveBy(paintOffset);
+ 
+@@ -1142,19 +1149,31 @@
+ 
+     if (bleedAvoidance == BackgroundBleedUseTransparencyLayer)
+         paintInfo.context->endTransparencyLayer();
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderBox::paintBoxDecorations()");
+ }
+ 
+ void RenderBox::paintBackground(const PaintInfo& paintInfo, const LayoutRect& paintRect, BackgroundBleedAvoidance bleedAvoidance)
+ {
+     if (isRoot()) {
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+RenderBox::paintBackground()");
++
+         paintRootBoxFillLayers(paintInfo);
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderBox::paintBackground()");
+         return;
+     }
+     if (isBody() && skipBodyBackground(this))
+         return;
+     if (backgroundIsKnownToBeObscured() && !boxShadowShouldBeAppliedToBackground(bleedAvoidance))
+         return;
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+RenderBox::paintBackground()");
++
+     paintFillLayers(paintInfo, style()->visitedDependentColor(CSSPropertyBackgroundColor), style()->backgroundLayers(), paintRect, bleedAvoidance);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderBox::paintBackground()");
+ }
+ 
+ bool RenderBox::getBackgroundPaintedExtent(LayoutRect& paintedExtent) const
+diff -Naur a/Source/WebCore/rendering/RenderImage.cpp b/Source/WebCore/rendering/RenderImage.cpp
+--- a/Source/WebCore/rendering/RenderImage.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/rendering/RenderImage.cpp	2016-07-01 16:56:09.409879606 -0700
+@@ -47,6 +47,9 @@
+ #include "SVGImage.h"
+ #include <wtf/StackStats.h>
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x2)
++
+ using namespace std;
+ 
+ namespace WebCore {
+@@ -408,6 +411,8 @@
+ 
+ void RenderImage::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+RenderImage::paint() %dx%d+%d+%d,+%d+%d", paintInfo.rect.width(), paintInfo.rect.height(), paintInfo.rect.x(), paintInfo.rect.y(), paintOffset.x().toInt(), paintOffset.y().toInt());
++
+     RenderReplaced::paint(paintInfo, paintOffset);
+     
+     if (paintInfo.phase == PaintPhaseOutline)
+diff -Naur a/Source/WebCore/rendering/RenderLayerBacking.cpp b/Source/WebCore/rendering/RenderLayerBacking.cpp
+--- a/Source/WebCore/rendering/RenderLayerBacking.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/rendering/RenderLayerBacking.cpp	2016-07-01 16:56:24.484730354 -0700
+@@ -2009,6 +2009,9 @@
+     context.restore();
+ }
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x4)
++
+ // Up-call from compositing layer drawing callback.
+ void RenderLayerBacking::paintContents(const GraphicsLayer* graphicsLayer, GraphicsContext& context, GraphicsLayerPaintingPhase paintingPhase, const IntRect& clip)
+ {
+@@ -2024,6 +2027,8 @@
+         || graphicsLayer == m_scrollingContentsLayer.get()) {
+         InspectorInstrumentation::willPaint(renderer());
+ 
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+RenderLayerBacking::paintContents()");
++
+         // The dirtyRect is in the coords of the painting root.
+         IntRect dirtyRect = clip;
+         if (!(paintingPhase & GraphicsLayerPaintOverflowContents))
+@@ -2032,6 +2037,8 @@
+         // We have to use the same root as for hit testing, because both methods can compute and cache clipRects.
+         paintIntoLayer(graphicsLayer, &context, dirtyRect, PaintBehaviorNormal, paintingPhase);
+ 
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayerBacking::paintContents()");
++
+         InspectorInstrumentation::didPaint(renderer(), &context, clip);
+     } else if (graphicsLayer == layerForHorizontalScrollbar()) {
+         paintScrollbar(m_owningLayer->horizontalScrollbar(), context, clip);
+@@ -2171,6 +2178,9 @@
+     ASSERT(property != CSSPropertyInvalid);
+ 
+     if (property == CSSPropertyOpacity) {
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+RenderLayerBacking::startTransition() CSSPropertyOpacity");
++
+         const Animation* opacityAnim = toStyle->transitionForProperty(CSSPropertyOpacity);
+         if (opacityAnim && !opacityAnim->isEmptyOrZeroDuration()) {
+             KeyframeValueList opacityVector(AnimatedPropertyOpacity);
+@@ -2186,6 +2196,9 @@
+     }
+ 
+     if (property == CSSPropertyWebkitTransform && m_owningLayer->hasTransform()) {
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+RenderLayerBacking::startTransition() CSSPropertyWebkitTransform");
++
+         const Animation* transformAnim = toStyle->transitionForProperty(CSSPropertyWebkitTransform);
+         if (transformAnim && !transformAnim->isEmptyOrZeroDuration()) {
+             KeyframeValueList transformVector(AnimatedPropertyWebkitTransform);
+@@ -2201,6 +2214,9 @@
+ 
+ #if ENABLE(CSS_FILTERS)
+     if (property == CSSPropertyWebkitFilter && m_owningLayer->hasFilter()) {
++
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+RenderLayerBacking::startTransition() CSSPropertyWebkitFilter");
++
+         const Animation* filterAnim = toStyle->transitionForProperty(CSSPropertyWebkitFilter);
+         if (filterAnim && !filterAnim->isEmptyOrZeroDuration()) {
+             KeyframeValueList filterVector(AnimatedPropertyWebkitFilter);
+@@ -2220,6 +2236,8 @@
+ 
+ void RenderLayerBacking::transitionPaused(double timeOffset, CSSPropertyID property)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+RenderLayerBacking::transitionPaused()");
++
+     AnimatedPropertyID animatedProperty = cssToGraphicsLayerProperty(property);
+     if (animatedProperty != AnimatedPropertyInvalid)
+         m_graphicsLayer->pauseAnimation(GraphicsLayer::animationNameForTransition(animatedProperty), timeOffset);
+@@ -2227,6 +2245,8 @@
+ 
+ void RenderLayerBacking::transitionFinished(CSSPropertyID property)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@S+RenderLayerBacking::transitionFinished()");
++
+     AnimatedPropertyID animatedProperty = cssToGraphicsLayerProperty(property);
+     if (animatedProperty != AnimatedPropertyInvalid)
+         m_graphicsLayer->removeAnimation(GraphicsLayer::animationNameForTransition(animatedProperty));
+diff -Naur a/Source/WebCore/rendering/RenderLayer.cpp b/Source/WebCore/rendering/RenderLayer.cpp
+--- a/Source/WebCore/rendering/RenderLayer.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebCore/rendering/RenderLayer.cpp	2016-07-01 16:56:17.342899781 -0700
+@@ -126,6 +126,9 @@
+ #include "ValidatedCustomFilterOperation.h"
+ #endif
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x2)
++
+ #define MIN_INTERSECT_FOR_REVEAL 32
+ 
+ using namespace std;
+@@ -3605,6 +3608,26 @@
+ 
+ void RenderLayer::paintLayer(GraphicsContext* context, const LayerPaintingInfo& paintingInfo, PaintLayerFlags paintFlags)
+ {
++    if (tditrace_ex != NULL) {
++        char text[256];
++        int i;
++        if (name().is8Bit()) {
++            i = name().length() < 255 ? name().length() : 255;
++            strncpy(text, (char*)name().characters8(), i);
++        } else {
++            char* p = (char*)name().characters8();
++            for (i = 0 ; i < (name().length() < 255 ? name().length() : 255) ; i++) {
++                text[i] = p[i];
++            }
++        }
++        text[i]=0;
++        tditrace_ex(TDIMASK, "@S+RenderLayer::paintLayer() %s %dx%d+%d+%d", text,
++            paintingInfo.paintDirtyRect.width().toInt(),
++            paintingInfo.paintDirtyRect.height().toInt(),
++            paintingInfo.paintDirtyRect.x().toInt(),
++            paintingInfo.paintDirtyRect.y().toInt());
++    }
++
+ #if USE(ACCELERATED_COMPOSITING)
+     if (isComposited()) {
+         // The updatingControlTints() painting pass goes through compositing layers,
+@@ -3616,26 +3639,34 @@
+             && !shouldDoSoftwarePaint(this, paintFlags & PaintLayerPaintingReflection)
+             && !paintForFixedRootBackground(this, paintFlags)) {
+             // If this RenderLayer should paint into its backing, that will be done via RenderLayerBacking::paintIntoLayer().
++            if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+             return;
+         }
+     } else if (viewportConstrainedNotCompositedReason() == NotCompositedForBoundsOutOfView) {
+         // Don't paint out-of-view viewport constrained layers (when doing prepainting) because they will never be visible
+         // unless their position or viewport size is changed.
+         ASSERT(renderer()->style()->position() == FixedPosition);
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+         return;
+     }
+ #endif
+ 
+     // Non self-painting leaf layers don't need to be painted as their renderer() should properly paint itself.
+-    if (!isSelfPaintingLayer() && !hasSelfPaintingLayerDescendant())
++    if (!isSelfPaintingLayer() && !hasSelfPaintingLayerDescendant()) {
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+         return;
++    }
+ 
+-    if (shouldSuppressPaintingLayer(this))
++    if (shouldSuppressPaintingLayer(this)) {
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+         return;
++    }
+     
+     // If this layer is totally invisible then there is nothing to paint.
+-    if (!renderer()->opacity())
++    if (!renderer()->opacity()) {
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+         return;
++    }
+ 
+     if (paintsWithTransparency(paintingInfo.paintBehavior))
+         paintFlags |= PaintLayerHaveTransparency;
+@@ -3644,8 +3675,10 @@
+     if (paintsWithTransform(paintingInfo.paintBehavior) && !(paintFlags & PaintLayerAppliedTransform)) {
+         TransformationMatrix layerTransform = renderableTransform(paintingInfo.paintBehavior);
+         // If the transform can't be inverted, then don't paint anything.
+-        if (!layerTransform.isInvertible())
++        if (!layerTransform.isInvertible()) {
++            if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+             return;
++        }
+ 
+         // If we have a transparency layer enclosing us and we are the root of a transform, then we need to establish the transparency
+         // layer from the parent now, assuming there is a parent
+@@ -3658,6 +3691,7 @@
+ 
+         if (enclosingPaginationLayer()) {
+             paintTransformedLayerIntoFragments(context, paintingInfo, paintFlags);
++            if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+             return;
+         }
+ 
+@@ -3679,10 +3713,13 @@
+         if (parent())
+             parent()->restoreClip(context, paintingInfo.paintDirtyRect, clipRect);
+ 
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+         return;
+     }
+     
+     paintLayerContentsAndReflection(context, paintingInfo, paintFlags);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-RenderLayer::paintLayer()");
+ }
+ 
+ void RenderLayer::paintLayerContentsAndReflection(GraphicsContext* context, const LayerPaintingInfo& paintingInfo, PaintLayerFlags paintFlags)
+diff -Naur a/Source/WebKit/qt/WidgetApi/qgraphicswebview.cpp b/Source/WebKit/qt/WidgetApi/qgraphicswebview.cpp
+--- a/Source/WebKit/qt/WidgetApi/qgraphicswebview.cpp	2015-09-07 03:54:07.000000000 -0700
++++ b/Source/WebKit/qt/WidgetApi/qgraphicswebview.cpp	2016-06-23 15:37:10.873794160 -0700
+@@ -43,6 +43,9 @@
+ #include <QX11Info>
+ #endif
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (1<<0)
++
+ using namespace WebCore;
+ 
+ class QGraphicsWebViewPrivate {
+@@ -242,6 +245,8 @@
+ */
+ void QGraphicsWebView::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget*)
+ {
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+QGraphicsWebView::paint()");
++
+ #ifndef QT_NO_OPENGL
+     d->page->d->saveGLContext();
+ #endif
+@@ -252,11 +257,14 @@
+     // QWebFrame::render is a public API, bypass it for tiled rendering so behavior does not need to change.
+     if (page()->mainFrame()->d->renderFromTiledBackingStore(painter, option->exposedRect.toAlignedRect())) {
+         painter->setRenderHints(oldHints);
++        if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T+QGraphicsWebView::paint()");
+         return;
+     }
+ #endif
+     page()->mainFrame()->render(painter, QWebFrame::AllLayers, option->exposedRect.toRect());
+     painter->setRenderHints(oldHints);
++
++    if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@T-QGraphicsWebView::paint()");
+ }
+ 
+ /*! \reimp
+diff -Naur a/Source/WTF/wtf/FastMalloc.cpp b/Source/WTF/wtf/FastMalloc.cpp
+--- a/Source/WTF/wtf/FastMalloc.cpp	2015-09-07 03:54:06.000000000 -0700
++++ b/Source/WTF/wtf/FastMalloc.cpp	2016-07-01 16:56:54.729962927 -0700
+@@ -117,6 +117,9 @@
+ #define USE_BACKGROUND_THREAD_TO_SCAVENGE_MEMORY 1
+ #endif
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x4000)
++
+ #ifndef NDEBUG
+ namespace WTF {
+ 
+@@ -4176,6 +4179,17 @@
+ 
+ void* fastMalloc(size_t size)
+ {
++
++    if (tditrace_ex != NULL) {
++        if (size > 32 * 1024) {
++            unsigned int ra = 0;
++            #ifdef __mips__
++            asm volatile("move %0, $ra" : "=r"(ra));
++            #endif
++            tditrace_ex(TDIMASK, "fm %d,ra=%x", size, ra);
++        }
++    }
++
+     return malloc<true>(size);
+ }
+ 
+@@ -4241,6 +4255,17 @@
+ 
+ void* fastCalloc(size_t n, size_t elem_size)
+ {
++
++    if (tditrace_ex != NULL) {
++        if ((n * elem_size) > 32 * 1024) {
++            unsigned int ra = 0;
++            #ifdef __mips__
++            asm volatile("move %0, $ra" : "=r"(ra));
++            #endif
++            tditrace_ex(TDIMASK, "fc %d,ra=%x", n * elem_size, ra);
++        }
++    }
++
+     void* result = calloc<true>(n, elem_size);
+ #if ENABLE(WTF_MALLOC_VALIDATION)
+     fastMallocValidate(result);
+@@ -4308,6 +4333,17 @@
+ 
+ void* fastRealloc(void* old_ptr, size_t new_size)
+ {
++
++    if (tditrace_ex != NULL) {
++        if (new_size > 32 * 1024) {
++            unsigned int ra = 0;
++            #ifdef __mips__
++            asm volatile("move %0, $ra" : "=r"(ra));
++            #endif
++            if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "fr %d,ra=%x", new_size, ra);
++        }
++    }
++
+ #if ENABLE(WTF_MALLOC_VALIDATION)
+     fastMallocValidate(old_ptr);
+ #endif
+diff -Naur a/Source/WTF/wtf/OSAllocatorPosix.cpp b/Source/WTF/wtf/OSAllocatorPosix.cpp
+--- a/Source/WTF/wtf/OSAllocatorPosix.cpp	2015-09-07 03:54:06.000000000 -0700
++++ b/Source/WTF/wtf/OSAllocatorPosix.cpp	2016-07-01 16:57:08.313066066 -0700
+@@ -44,8 +44,20 @@
+ }
+ #endif // CPU(MIPS)
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x4000)
++
+ void* OSAllocator::reserveUncommitted(size_t bytes, Usage usage, bool writable, bool executable, bool includesGuardPages)
+ {
++
++    if (tditrace_ex != NULL) {
++        unsigned int ra = 0;
++        #ifdef __mips__
++        asm volatile("move %0, $ra" : "=r"(ra));
++        #endif
++        tditrace_ex(TDIMASK, "ru %d,ra=%x", bytes, ra);
++    }
++
+ #if OS(QNX)
+     UNUSED_PARAM(usage);
+     UNUSED_PARAM(writable);
+@@ -108,6 +120,15 @@
+ 
+ void* OSAllocator::reserveAndCommit(size_t bytes, Usage usage, bool writable, bool executable, bool includesGuardPages)
+ {
++
++    if (tditrace_ex != NULL) {
++        unsigned int ra = 0;
++        #ifdef __mips__
++        asm volatile("move %0, $ra" : "=r"(ra));
++        #endif
++        tditrace_ex(TDIMASK, "rc %d,ra=%x", bytes, ra);
++    }
++
+     // All POSIX reservations start out logically committed.
+     int protection = PROT_READ;
+     if (writable)
+@@ -224,6 +245,14 @@
+ 
+ void OSAllocator::releaseDecommitted(void* address, size_t bytes)
+ {
++    if (tditrace_ex != NULL) {
++        unsigned int ra = 0;
++        #ifdef __mips__
++        asm volatile("move %0, $ra" : "=r"(ra));
++        #endif
++        tditrace_ex(TDIMASK, "rd %d,ra=%x", bytes, ra);
++    }
++
+     int result = munmap(address, bytes);
+     if (result == -1)
+         CRASH();
+diff -Naur a/Source/WTF/wtf/PageAllocationAligned.cpp b/Source/WTF/wtf/PageAllocationAligned.cpp
+--- a/Source/WTF/wtf/PageAllocationAligned.cpp	2015-09-07 03:54:06.000000000 -0700
++++ b/Source/WTF/wtf/PageAllocationAligned.cpp	2016-07-01 16:57:16.943491865 -0700
+@@ -26,10 +26,22 @@
+ #include "config.h"
+ #include "PageAllocationAligned.h"
+ 
++extern "C" void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x4000)
++
+ namespace WTF {
+ 
+ PageAllocationAligned PageAllocationAligned::allocate(size_t size, size_t alignment, OSAllocator::Usage usage, bool writable)
+ {
++
++    if (tditrace_ex != NULL) {
++        unsigned int ra = 0;
++        #ifdef __mips__
++        asm volatile("move %0, $ra" : "=r"(ra));
++        #endif
++        tditrace_ex(TDIMASK, "pa %d,ra=%x", (int)size, ra);
++    }
++
+     ASSERT(isPageAligned(size));
+     ASSERT(isPageAligned(alignment));
+     ASSERT(isPowerOfTwo(alignment));
