@@ -1,0 +1,232 @@
+diff -Naur a/rockford/middleware/v3d/middleware/khronos/common/khrn_interlock.c b/rockford/middleware/v3d/middleware/khronos/common/khrn_interlock.c
+--- a/rockford/middleware/v3d/middleware/khronos/common/khrn_interlock.c	2016-10-28 00:04:26.025075388 -0700
++++ b/rockford/middleware/v3d/middleware/khronos/common/khrn_interlock.c	2016-10-28 00:01:00.944580255 -0700
+@@ -12,11 +12,15 @@
+ #include "interface/khronos/common/khrn_int_common.h"
+ #include "middleware/khronos/common/khrn_interlock.h"
+ 
++extern void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x20000000) /* GPU */
++
+ void khrn_interlock_init(KHRN_INTERLOCK_T *interlock)
+ {
+    interlock->disp_image_handle = EGL_DISP_IMAGE_HANDLE_INVALID;
+    interlock->users = KHRN_INTERLOCK_USER_NONE;
+    khrn_interlock_extra_init(interlock);
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "-khrn_interlock_init [%x] %x", (int)interlock, (int)interlock->users);
+ }
+ 
+ void khrn_interlock_term(KHRN_INTERLOCK_T *interlock)
+@@ -24,6 +28,7 @@
+    interlock->users &= ~KHRN_INTERLOCK_USER_INVALID;
+    vcos_assert(!interlock->users);
+    khrn_interlock_extra_term(interlock);
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "-khrn_interlock_term [%x] %x", (int)interlock, (int)interlock->users);
+ }
+ 
+ bool khrn_interlock_read(KHRN_INTERLOCK_T *interlock, KHRN_INTERLOCK_USER_T user) /* user allowed to be KHRN_INTERLOCK_USER_NONE */
+@@ -36,8 +41,10 @@
+          vcos_assert(!interlock->users);
+       }
+       interlock->users = (KHRN_INTERLOCK_USER_T)(interlock->users | user);
++      if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "-khrn_interlock_read [%x] %x %x", (int)interlock, (int)interlock->users, (int)user);
+       return true;
+    }
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "-khrn_interlock_read [%x] %x %x", (int)interlock, (int)interlock->users, (int)user);
+    return false;
+ }
+ 
+@@ -57,8 +64,10 @@
+       if (user) {
+          interlock->users = (KHRN_INTERLOCK_USER_T)(interlock->users | user | KHRN_INTERLOCK_USER_WRITING);
+       }
++      if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "-khrn_interlock_write [%x] %x %x", (int)interlock, (int)interlock->users, (int)user);
+       return true;
+    }
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "-khrn_interlock_write [%x] %x %x", (int)interlock, (int)interlock->users, (int)user);
+    return false;
+ }
+ 
+@@ -76,8 +85,10 @@
+    vcos_assert(!(interlock->users & KHRN_INTERLOCK_USER_WRITING) || (interlock->users == (user | KHRN_INTERLOCK_USER_WRITING)));
+    if (interlock->users & user) {
+       interlock->users = (KHRN_INTERLOCK_USER_T)(interlock->users & ~user & ~KHRN_INTERLOCK_USER_WRITING);
++      if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "-khrn_interlock_release [%x] %x %x", (int)interlock, (int)interlock->users, (int)user);
+       return true;
+    }
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "-khrn_interlock_release [%x] %x %x", (int)interlock, (int)interlock->users, (int)user);
+    return false;
+ }
+ 
+@@ -85,6 +96,8 @@
+ {
+    KHRN_INTERLOCK_USER_T other_users;
+    other_users = (KHRN_INTERLOCK_USER_T)(interlock->users & ~KHRN_INTERLOCK_USER_WRITING & ~KHRN_INTERLOCK_USER_INVALID);
++
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "-khrn_interlock_write_would_block [%x] %x", (int)interlock, (int)other_users);
+    return !!(other_users);
+ }
+ 
+@@ -92,10 +105,10 @@
+ {
+    khrn_interlock_write (interlock, KHRN_INTERLOCK_USER_NONE);
+    interlock->users |= KHRN_INTERLOCK_USER_INVALID;
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "-khrn_interlock_invalidate [%x] %x", (int)interlock, (int)interlock->users);
+ }
+ 
+ bool khrn_interlock_is_invalid(KHRN_INTERLOCK_T *interlock)
+ {
+    return ((interlock->users & KHRN_INTERLOCK_USER_INVALID) != 0);
+ }
+-
+diff -Naur a/rockford/middleware/v3d/middleware/khronos/glxx/glxx_buffer.c b/rockford/middleware/v3d/middleware/khronos/glxx/glxx_buffer.c
+--- a/rockford/middleware/v3d/middleware/khronos/glxx/glxx_buffer.c	2016-10-28 00:04:40.304770725 -0700
++++ b/rockford/middleware/v3d/middleware/khronos/glxx/glxx_buffer.c	2016-10-28 00:14:09.524303937 -0700
+@@ -135,6 +135,9 @@
+    All invariants on buffer
+ */
+ 
++extern void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x20000000) /* GPU */
++
+ static bool glxx_buffer_inner_data(GLXX_BUFFER_INNER_T *item, int32_t size, const void *data, bool is_new_item)
+ {
+    uint32_t current_size;
+@@ -143,6 +146,9 @@
+    khrn_interlock_write_immediate(&item->interlock);
+ 
+    current_size = mem_get_size(item->mh_storage);
++
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A+glxx_buffer_inner_data %d %d", current_size, size);
++
+    if (current_size != (uint32_t)size) {
+ 
+       MEM_HANDLE_T handle;
+@@ -183,6 +189,7 @@
+       mem_unlock(item->mh_storage);
+    }
+ 
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A-glxx_buffer_inner_data");
+    return true;
+ }
+ 
+@@ -190,8 +197,12 @@
+ {
+    vcos_assert(size >= 0);
+ 
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A+glxx_buffer_data %d", size);
++
+    if(write_would_block(&buffer->pool[buffer->current_item]))
+    {
++      if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "glxx_buffer_data_would_block");
++
+       //pick a non busy entry from the pool;
+       uint32_t i;
+       for(i = 0; i< GLXX_BUFFER_POOL_SIZE; i++)
+@@ -209,6 +220,8 @@
+          buffer->current_item = i;
+ 
+       } //else stick with the existing and wait
++   } else {
++      if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "glxx_buffer_data_would_not_block");
+    }
+ 
+    if(!glxx_buffer_inner_data(&buffer->pool[buffer->current_item],size,data,false))
+@@ -217,6 +230,8 @@
+    //successfuly allocated memory and copied data
+    buffer->usage = usage;
+ 
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A-glxx_buffer_data");
++
+    return true;
+ }
+ 
+@@ -253,12 +268,16 @@
+    vcos_assert(offset >= 0 && size >= 0 && (uint32_t)offset + (uint32_t)size <= mem_get_size(item->mh_storage));
+    vcos_assert(data);
+ 
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A+glxx_buffer_inner_subdata %d", size);
++
+    khrn_interlock_write_immediate(&item->interlock);
+ 
+    if(size>0) {
+       khrn_memcpy((uint8_t *)mem_lock(item->mh_storage) + offset, data, size);
+       mem_unlock(item->mh_storage);
+    }
++
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A-glxx_buffer_inner_subdata");
+ }
+ 
+ void glxx_buffer_subdata(GLXX_BUFFER_T *buffer, int32_t offset, int32_t size, const void *data)
+@@ -270,8 +289,12 @@
+    //we pick one of the other pool items, copy the entirety of the current item
+    //into that item, and then the new subdata
+ 
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A+glxx_buffer_subdata %d", size);
++
+    if(write_would_block(&buffer->pool[buffer->current_item]))
+    {
++      if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "glxx_buffer_subdata_would_block");
++
+       //pick a non busy entry from the pool;
+       uint32_t i;
+       for(i = 0; i< GLXX_BUFFER_POOL_SIZE; i++)
+@@ -298,8 +321,12 @@
+          }
+       } //else stick with the existing and wait
+ 
++   } else {
++      if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "glxx_buffer_subdata_would_not_block");
+    }
+ 
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A-glxx_buffer_subdata");
++
+    glxx_buffer_inner_subdata(&buffer->pool[buffer->current_item],offset,size,data);
+ }
+ 
+diff -Naur a/rockford/middleware/v3d/middleware/khronos/glxx/glxx_server_cr.c b/rockford/middleware/v3d/middleware/khronos/glxx/glxx_server_cr.c
+--- a/rockford/middleware/v3d/middleware/khronos/glxx/glxx_server_cr.c	2016-10-28 00:04:51.049670878 -0700
++++ b/rockford/middleware/v3d/middleware/khronos/glxx/glxx_server_cr.c	2016-10-28 00:01:24.418587507 -0700
+@@ -2104,10 +2104,15 @@
+           (!IS_GL_11(state) && usage == GL_STREAM_DRAW);
+ }
+ 
++extern void tditrace_ex(int mask, const char* format, ...) __attribute__((weak));
++#define TDIMASK (0x20000000) /* GPU */
++
+ void glBufferData_impl (GLenum target, GLsizeiptr size, GLenum usage, const GLvoid *data)             // note parameter order swap for RPC convenience
+ {
+    GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+ 
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A+glBufferData_impl %d", size);
++
+    if (size < 0)
+       glxx_server_state_set_error(state, GL_INVALID_VALUE);
+    else if (!is_usage(state,usage))   
+@@ -2125,6 +2130,8 @@
+       }
+    }
+ 
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A-glBufferData_impl");
++
+    GLXX_UNLOCK_SERVER_STATE();
+ }
+ 
+@@ -2185,6 +2192,8 @@
+ {
+    GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
+ 
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A+glBufferSubData_impl %d", size);
++
+    MEM_HANDLE_T bhandle;
+ 
+    GLXX_BUFFER_T *buffer = glxx_get_bound_buffer(state, target, &bhandle);
+@@ -2206,6 +2215,8 @@
+       mem_unlock(bhandle);
+    }
+ 
++   if (tditrace_ex != NULL) tditrace_ex(TDIMASK, "@A-glBufferSubData_impl");
++
+    GLXX_UNLOCK_SERVER_STATE();
+ }
+ 
